@@ -1,15 +1,11 @@
 import socket, threading, sqlite3, uuid
 
 
-class Server:
-    address = (socket.gethostbyname(socket.gethostname()), 9999)
+class DatabaseHandler:
 
     def __init__(self):
-        self.users = {}
         self.database = None
         self.initialize_database()
-        self.server = None
-        self.start_server()
 
     def initialize_database(self):
         self.database = sqlite3.connect('credentials.db')
@@ -17,12 +13,6 @@ class Server:
         ID INT PRIMARY KEY,
         USERNAME TEXT,
         KEY TEXT) ''')
-
-    def start_server(self):
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server.bind(Server.address)
-        self.server.listen()
 
     def insert_new_user(self, username, key):
         user_id = uuid.uuid4().int % 1000_0000_0000_0000
@@ -35,6 +25,21 @@ class Server:
         user = self.database.execute('''SELECT * FROM users 
             WHERE ID = ? AND USERNAME = ? AND KEY = ?''', (user_id, username, key))
         return user
+
+
+class Server:
+    address = (socket.gethostbyname(socket.gethostname()), 9999)
+
+    def __init__(self):
+        self.users = {}
+        self.server = None
+        self.start_server()
+
+    def start_server(self):
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server.bind(Server.address)
+        self.server.listen()
 
     def handle_client(self, client):
         data = client.recv(1024).decode()

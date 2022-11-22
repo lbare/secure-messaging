@@ -2,91 +2,52 @@
 
 Secure Messaging Service
 
-## Getting started
+# Test Environment Setup
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## 1. Create ```credentials.txt``` inside  ```/src/``` and add a username such as the following
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin https://gitlab.csc.uvic.ca/courses/2022091/SENG360_COSI/assignments/ebertc/seng-360-group-1.git
-git branch -M main
-git push -uf origin main
+```text
+username:Test_id
 ```
 
-## Integrate with your tools
+The username set here needs to match the username set in [test_client.py](https://gitlab.csc.uvic.ca/courses/2022091/SENG360_COSI/assignments/ebertc/seng-360-group-1/-/blob/main/src/test_client.py) to send a message in the correct format
 
-- [ ] [Set up project integrations](https://gitlab.csc.uvic.ca/courses/2022091/SENG360_COSI/assignments/ebertc/seng-360-group-1/-/settings/integrations)
+```python
+user = "Test_id"
+ ```
 
-## Collaborate with your team
+## 2. Add loopback IP to ```config-file.txt``` and ```server.py```
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Automatically merge when pipeline succeeds](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+ The port number should stay the same in [config-file.txt](https://gitlab.csc.uvic.ca/courses/2022091/SENG360_COSI/assignments/ebertc/seng-360-group-1/-/blob/main/src/config-file.txt) but with the loopback IP it should look like the following
 
-## Test and Deploy
+```text
+ip:127.0.0.1
+port:9999
+```
 
-Use the built-in continuous integration in GitLab.
+while [server.py](https://gitlab.csc.uvic.ca/courses/2022091/SENG360_COSI/assignments/ebertc/seng-360-group-1/-/blob/main/src/server.py) will change from
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+```python
+address = (socket.gethostbyname(socket.gethostname()), 9999)
+```
 
-***
+to
 
-# Editing this README
+```python
+address = ('127.0.0.1', 9999)
+```
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!).  Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## 3. Run ```server.py``` in a terminal followed by ```test_client.py``` in another
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+If all is set up correctly and a connection is made you should see the following
 
-## Name
-Choose a self-explaining name for your project.
+```bash
+> python3 server.py
+172.21.0.1
+('127.0.0.1', 51335)
+```
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+```bash
+> python3 test_client.py
+('127.0.0.1', 9999)
+```

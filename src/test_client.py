@@ -3,12 +3,12 @@ import threading
 
 config = {}
 
-with open('../config-file.txt') as f:
+with open('config-file.txt') as f:
     for i in f.readlines():
         data = i.split(":")
         config[data[0]] = data[1].strip()
 
-with open("../credentials.txt") as f:
+with open("credentials.txt") as f:
     username = f.readline().split(":")[1]
 
 
@@ -21,6 +21,7 @@ def main():
     recv_thread.start()
     while 1:
         data = input()
+        data = f"Test_id:{data}"
         s.send(data.encode())
 
 

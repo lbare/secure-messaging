@@ -20,8 +20,9 @@ def main():
     recv_thread = threading.Thread(target=recv, args=[s])
     recv_thread.start()
     while 1:
-        data = input()
-        data = f"Test_id:{data}"
+        msg = input()
+        user = "Test_id"
+        data = f"{user}:{msg}"
         s.send(data.encode())
 
 

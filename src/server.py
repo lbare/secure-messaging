@@ -5,12 +5,12 @@ address = (socket.gethostbyname(socket.gethostname()), 9999)
 
 users = {}
 
+
 def handle_client(client):
     data = client.recv(1024).decode()
     while data:
-        data = data.split(':', 1)
-        user = data[0]
-        msg = data[1]
+        user, text = data.split(':', 1)
+        msg = f"{user}:{text}"
         users[user].send(msg.encode())
         data = client.recv(1024).decode()
 
@@ -30,10 +30,6 @@ def main():
         users[user.decode()] = client
         new_thread = threading.Thread(target=handle_client, args=[client])
         new_thread.start()
-
-
-
-
 
 
 if __name__ == '__main__':

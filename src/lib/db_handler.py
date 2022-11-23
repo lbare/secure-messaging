@@ -1,4 +1,5 @@
 import sqlite3
+import uuid
 
 
 def sanitize(s_input: str):
@@ -54,3 +55,45 @@ class ClientDatabaseHandler:
     def get_user(self, username, password_hash):
         self.database.execute('''SELECT * FROM localUser WHERE USERNAME = ? AND PASSWORD_HASH = ?''',
                               (username, password_hash))
+
+
+class ServerDatabaseHandler:
+
+    def __init__(self):
+        self.database = None
+        self.initialize_database()
+
+    def initialize_database(self):
+        self.database = sqlite3.connect('credentials.db')
+        self.database.execute('''CREATE TABLE IF NOT EXISTS users(
+        ID INT PRIMARY KEY,
+        USERNAME TEXT,
+        KEY TEXT,
+        PASSWORD_HASH) ''')
+
+    def insert_new_user(self, username, key, password_hash):
+        user_id = uuid.uuid4().int % 1000_0000_0000_0000
+        self.database.execute('''INSERT INTO users(ID, USERNAME, KEY, PASSWORD_HASH)
+                VALUES(?,?,?,?)''', (user_id, username, key, password_hash))
+        self.database.commit()
+        return user_id
+
+    def get_user(self, user_id):
+        user_request = self.database.execute('''SELECT * FROM users 
+            WHERE ID = ? ''', user_id)
+        user = {}
+        for i in user_request:
+            user["user_id"] = i[0]
+            user["username"] = i[1]
+            user["key"] = i[2]
+        return user
+
+    def login(self, username, password_hash):
+        user_request = self.database.execute('''SELECT * FROM users 
+            WHERE USERNAME = ? AND PASSWORD_HASH = ? ''', (username, password_hash))
+        user = {}
+        for i in user_request:
+            user["user_id"] = i[0]
+            user["username"] = i[1]
+            user["key"] = i[2]
+        return user

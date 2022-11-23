@@ -1,30 +1,5 @@
-import socket, threading, sqlite3, uuid
-
-
-class DatabaseHandler:
-
-    def __init__(self):
-        self.database = None
-        self.initialize_database()
-
-    def initialize_database(self):
-        self.database = sqlite3.connect('credentials.db')
-        self.database.execute('''CREATE TABLE IF NOT EXISTS users(
-        ID INT PRIMARY KEY,
-        USERNAME TEXT,
-        KEY TEXT) ''')
-
-    def insert_new_user(self, username, key):
-        user_id = uuid.uuid4().int % 1000_0000_0000_0000
-        self.database.execute('''INSERT INTO users(ID, USERNAME, KEY)
-                VALUES(?,?,?)''', (user_id, username, key))
-        self.database.commit()
-        return user_id
-
-    def get_user(self, user_id, username, key):
-        user = self.database.execute('''SELECT * FROM users 
-            WHERE ID = ? AND USERNAME = ? AND KEY = ?''', (user_id, username, key))
-        return user
+import socket
+import threading
 
 
 class Server:

@@ -3,12 +3,6 @@ import generate_hmac
 import generate_keys
 from datetime import datetime
 
-message_type = {
-    "login_request",
-    "delete_account_request",
-    "send_message"
-}
-
 
 def generate_timestamp():
     epoch_time = datetime(1970, 1, 1)
@@ -18,19 +12,57 @@ def generate_timestamp():
 
 
 class Message:
-    def __init__(self, msg_content, hmac, shared_client_key, shared_server_key,
-                 msg_type=None, sender_id=None, recipient_id=None, encrypted_payload=None):
+    message_type = {
+        "login_request",
+        "login_response"
+        "login_success",
+        "sign_up_request",
+        "sign_up_response",
+        "sign_up_success",
+        "message_to_server",
+        "message_to_client"
+    }
+
+    def __init__(
+            self, msg_type, msg_content=None,
+            public_key=None, private_key=None,
+            shared_client_key=None, shared_server_key=None,
+            sender_id=None, recipient_id=None,
+            encrypted_payload=None
+    ):
+        self.msg_type = msg_type
         self.msg_content = msg_content
-        self.hmac = hmac
+        self.public_key = public_key
+        self.private_key = private_key
         self.shared_client_key = shared_client_key
         self.shared_server_key = shared_server_key
-        self.msg_type = msg_type
         self.sender_id = sender_id
         self.recipient_id = recipient_id
         self.encrypted_payload = encrypted_payload
 
-    def client_to_server(self):
-        client_payload = f"hmac:{self.hmac}, " \
+    def generate_msg(self):
+        match self.msg_type:
+            case "message_to_server":
+                return self.message_to_server()
+            case "message_from_server":
+                return self.message_from_server()
+            case "login_request":
+                return self.login_request_msg()
+            case "login_response":
+                return self.login_response_msg()
+            case "login_success":
+                return self.login_success_msg()
+            case "sign_up_request":
+                return self.sign_up_request_msg()
+            case "sign_up_response":
+                return self.sign_up_response_msg()
+            case "sign_up_success":
+                return self.sign_up_success_msg()
+
+    def message_to_server(self):
+        hmac = generate_hmac.generate_new_hmac(self.public_key, self.msg_content)
+
+        client_payload = f"hmac:{hmac}, " \
                          f"timestamp:{generate_timestamp()}, " \
                          f"message:{self.msg_content}"
         encrypted_client_payload = basic_crypto.encrypt_message(client_payload, self.shared_client_key)
@@ -43,13 +75,32 @@ class Message:
 
         return encrypted_server_payload
 
-    def server_to_client(self):
+    def message_from_server(self):
         recipient_payload = f"sender_id:{self.sender_id}, " \
                             f"timestamp:{generate_timestamp()}" \
                             f"payload:{self.encrypted_payload}"
         return recipient_payload
 
+    def login_request_msg(self):
+        pass
 
+    def login_response_msg(self):
+        pass
+
+    def login_success_msg(self):
+        pass
+
+    def sign_up_request_msg(self):
+        pass
+
+    def sign_up_response_msg(self):
+        pass
+
+    def sign_up_success_msg(self):
+        pass
+
+
+"""
 if __name__ == "__main__":
     # Alice sending to Bob
 
@@ -85,23 +136,4 @@ if __name__ == "__main__":
                   msg_type=msg_type_test,
                   sender_id=sender_id_test, recipient_id=recipient_id_test)
     print(msg_to_server)
-
-
-
-"""
-sender->server message
-{message_type:send_message, recipient_id:id, timestamp:timestamp, payload:
-            {hmac:hmac, timestamp:timestamp, message:message}p-pkey
-}sender-serverkey
-
-server->recipient message
-{sender_id:id, timestamp: timestamp, payload:
-            {hmac:hmac, timestamp:timestamp, message:message}p-pkey
-}recipient
-
-message_type {
-	login_request
-	delete_account_request
-	send_message
-}
 """

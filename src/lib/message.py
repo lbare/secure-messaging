@@ -1,6 +1,5 @@
 import basic_crypto
 import generate_hmac
-import generate_keys
 from datetime import datetime
 
 
@@ -12,16 +11,6 @@ def generate_timestamp():
 
 
 class Message:
-    message_type = {
-        "login_request",
-        "login_response"
-        "login_success",
-        "sign_up_request",
-        "sign_up_response",
-        "sign_up_success",
-        "message_to_server",
-        "message_to_client"
-    }
 
     def __init__(
             self, msg_type, msg_content=None,
@@ -69,7 +58,7 @@ class Message:
         return encrypted_server_payload
 
     def message_from_server(self):
-        recipient_payload = f"sender_id:{self.sender_id}, " \
+        recipient_payload = f"sender_id:{self.user_id}, " \
                             f"timestamp:{generate_timestamp()}, " \
                             f"payload:{self.encrypted_payload}"
 
@@ -93,40 +82,57 @@ class Message:
         return encrypted_payload
 
 
-"""
 if __name__ == "__main__":
     # Alice sending to Bob
 
-    # user IDs
+    # user IDs and login
     alice_id = 123
     bob_id = 456
+    alice_username = "alice"
+    alice_password = "password"
 
-    # generate DH
-    alice = generate_keys.generate_new_DH()
-    bob = generate_keys.generate_new_DH()
-    client = generate_keys.generate_new_DH()
+    # public keys
+    alice_public_key = "vcxz"
+    bob_public_key = "rewq"
+    server_public_key = "fdsa"
 
-    # generate private keys
-    alice_private_key = alice.get_private_key()
-    bob_private_key = bob.get_private_key()
-    client_private_key = client.get_private_key()
+    # private keys
+    alice_private_key = "qwer1234"
+    bob_private_key = "asdf5678"
+    server_private_key = "zxcv9012"
 
     # generate shared keys
-    alice_bob_shared_key = generate_keys.generate_shared_key(alice, bob)
-    alice_server_shared_key = generate_keys.generate_shared_key(alice, client)
-    bob_server_shared_key = generate_keys.generate_shared_key(bob, client)
+    alice_bob_shared_key = "uiop"
+    alice_server_shared_key = "hjkl"
+    bob_server_shared_key = "vbnm"
 
-    # message parameters
+    # other message parameters
+    msg_type_test = "message_to_server"
     msg_content_test = "hello there"
-    hmac_test = generate_hmac.generate_new_hmac(alice_bob_shared_key, msg_content_test)
-    msg_type_test = "send_message"
     sender_id_test = alice_id
     recipient_id_test = bob_id
 
-    # create message
-    msg_to_server = Message(msg_content_test,
-                  hmac_test, alice_bob_shared_key, alice_server_shared_key,
-                  msg_type=msg_type_test,
-                  sender_id=sender_id_test, recipient_id=recipient_id_test)
-    print(msg_to_server)
-"""
+    # tests
+    sign_up_request = Message(msg_type="request", public_key=alice_public_key) \
+        .generate_msg()
+    sign_up_response = Message(msg_type="response", username=alice_username, password=alice_password) \
+        .generate_msg()
+    sign_up_success = Message(msg_type="success", user_id=alice_id) \
+        .generate_msg()
+
+    message_to_server_test = Message(msg_type="message_to_server", msg_content=msg_content_test,
+                                     public_key=alice_public_key, recipient_id=recipient_id_test,
+                                     shared_server_key=alice_server_shared_key)
+    message_from_server_test = Message(msg_type="message_from_server", msg_content=message_to_server_test,
+                                       user_id=alice_id, encrypted_payload=message_to_server_test)
+
+    print(f"Sign Up:\n"
+          f"{sign_up_request}\n"
+          f"{sign_up_response}\n"
+          f"{sign_up_success}\n")
+
+    print(f"Message:\n"
+          f"{message_from_server_test}\n"
+          f"{message_from_server_test}\n")
+
+

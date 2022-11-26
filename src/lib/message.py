@@ -27,7 +27,8 @@ class Message:
             self, msg_type, msg_content=None,
             public_key=None, private_key=None,
             shared_client_key=None, shared_server_key=None,
-            sender_id=None, recipient_id=None,
+            username=None, password=None,
+            user_id=None, recipient_id=None,
             encrypted_payload=None
     ):
         self.msg_type = msg_type
@@ -36,7 +37,9 @@ class Message:
         self.private_key = private_key
         self.shared_client_key = shared_client_key
         self.shared_server_key = shared_server_key
-        self.sender_id = sender_id
+        self.username = username
+        self.password = password
+        self.user_id = user_id
         self.recipient_id = recipient_id
         self.encrypted_payload = encrypted_payload
 
@@ -46,58 +49,48 @@ class Message:
                 return self.message_to_server()
             case "message_from_server":
                 return self.message_from_server()
-            case "login_request":
-                return self.login_request_msg()
-            case "login_response":
-                return self.login_response_msg()
-            case "login_success":
-                return self.login_success_msg()
-            case "sign_up_request":
-                return self.sign_up_request_msg()
-            case "sign_up_response":
-                return self.sign_up_response_msg()
-            case "sign_up_success":
-                return self.sign_up_success_msg()
+            case "request":
+                return self.request_msg()
+            case "response":
+                return self.response_msg()
+            case "success":
+                return self.success_msg()
 
     def message_to_server(self):
         hmac = generate_hmac.generate_new_hmac(self.public_key, self.msg_content)
 
-        client_payload = f"hmac:{hmac}, " \
-                         f"timestamp:{generate_timestamp()}, " \
-                         f"message:{self.msg_content}"
+        client_payload = f"hmac:{hmac}, timestamp:{generate_timestamp()}, message:{self.msg_content}"
         encrypted_client_payload = basic_crypto.encrypt_message(client_payload, self.shared_client_key)
 
-        server_payload = f"message_type:{self.msg_type}, " \
-                         f"recipient_id:{self.recipient_id}, " \
-                         f"timestamp:{generate_timestamp()}" \
-                         f"payload:{encrypted_client_payload}"
+        server_payload = f"message_type:{self.msg_type}, recipient_id:{self.recipient_id}, " \
+                         f"timestamp:{generate_timestamp()}, payload:{encrypted_client_payload}"
         encrypted_server_payload = basic_crypto.encrypt_message(server_payload, self.shared_server_key)
 
         return encrypted_server_payload
 
     def message_from_server(self):
         recipient_payload = f"sender_id:{self.sender_id}, " \
-                            f"timestamp:{generate_timestamp()}" \
+                            f"timestamp:{generate_timestamp()}, " \
                             f"payload:{self.encrypted_payload}"
+
         return recipient_payload
 
-    def login_request_msg(self):
-        pass
+    def request_msg(self):
+        payload = f"message_type:{self.msg_type}, public_key:{self.public_key}"
 
-    def login_response_msg(self):
-        pass
+        return payload
 
-    def login_success_msg(self):
-        pass
+    def response_msg(self):
+        payload = f"message_type:{self.msg_type}, username:{self.username}, password:{self.password}"
+        encrypted_payload = basic_crypto.encrypt_message(payload, self.shared_server_key)
 
-    def sign_up_request_msg(self):
-        pass
+        return encrypted_payload
 
-    def sign_up_response_msg(self):
-        pass
+    def success_msg(self):
+        payload = f"user_id:{self.user_id}"
+        encrypted_payload = basic_crypto.encrypt_message(payload, self.shared_server_key)
 
-    def sign_up_success_msg(self):
-        pass
+        return encrypted_payload
 
 
 """

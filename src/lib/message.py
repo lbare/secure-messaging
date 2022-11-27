@@ -25,6 +25,7 @@ class Message:
             self, msg_type, msg_content=None,
             public_key=None, private_key=None,
             shared_client_key=None, shared_server_key=None,
+            recipient_server_key=None,
             username=None, password=None,
             user_id=None, recipient_id=None,
             encrypted_payload=None
@@ -35,6 +36,7 @@ class Message:
         self.private_key = private_key
         self.shared_client_key = shared_client_key
         self.shared_server_key = shared_server_key
+        self.recipient_server_key = recipient_server_key
         self.username = username
         self.password = password
         self.user_id = user_id
@@ -45,7 +47,7 @@ class Message:
         """
         Generates formatted message depending on message type
 
-        Returns: string
+        Returns: tuple in the form [cipher.nonce, tag, encrypted message]
         """
         match self.msg_type:
             case "message_to_server":
@@ -67,9 +69,9 @@ class Message:
             {hmac:hmac, timestamp:timestamp, message:message}p-p-key
         }sender-server-key
 
-        Returns: string
+        Returns: tuple in the form [cipher.nonce, tag, encrypted message]
         """
-        hmac = generate_hmac.generate_new_hmac(self.public_key, self.msg_content)
+        hmac = generate_hmac.generate_new_hmac(self.shared_client_key, self.msg_content)
 
         client_payload = f"hmac:{hmac}, timestamp:{generate_timestamp()}, message:{self.msg_content}"
         encrypted_client_payload = basic_crypto.encrypt_message(client_payload, self.shared_client_key)
@@ -88,13 +90,14 @@ class Message:
             {hmac:hmac, timestamp:timestamp, message:message}p-p-key
         }recipient-server-key
 
-        Returns: string
+        Returns: tuple in the form [cipher.nonce, tag, encrypted message]
         """
         recipient_payload = f"sender_id:{self.user_id}, " \
                             f"timestamp:{generate_timestamp()}, " \
                             f"payload:{self.encrypted_payload}"
+        encrypted_recipient_payload = basic_crypto.encrypt_message(recipient_payload, self.recipient_server_key)
 
-        return recipient_payload
+        return encrypted_recipient_payload
 
     def request_msg(self):
         """
@@ -114,7 +117,7 @@ class Message:
         credentials, from client to server. Message in the encrypted form:
         {message_type:sign_up, username:username, password:password}client-server-key
 
-        Returns: string
+        Returns: tuple in the form [cipher.nonce, tag, encrypted message]
         """
         payload = f"message_type:{self.msg_type}, username:{self.username}, password:{self.password}"
         encrypted_payload = basic_crypto.encrypt_message(payload, self.shared_server_key)
@@ -127,7 +130,7 @@ class Message:
         from server to client. Message in the encrypted form:
         {user_id:id}client-server-key
 
-        Returns: string
+        Returns: tuple in the form [cipher.nonce, tag, encrypted message]
         """
         payload = f"user_id:{self.user_id}"
         encrypted_payload = basic_crypto.encrypt_message(payload, self.shared_server_key)

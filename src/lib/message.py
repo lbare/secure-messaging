@@ -4,6 +4,11 @@ from datetime import datetime
 
 
 def generate_timestamp():
+    """
+    Generates timestamp to ensure message freshness, time since epoch in seconds
+
+    Returns: float
+    """
     epoch_time = datetime(1970, 1, 1)
     current_time = datetime.now()
     delta = current_time - epoch_time
@@ -11,6 +16,10 @@ def generate_timestamp():
 
 
 class Message:
+    """
+    Handles message structure given necessary parameters
+    such as message information, user keys, and user credentials.
+    """
 
     def __init__(
             self, msg_type, msg_content=None,
@@ -33,6 +42,11 @@ class Message:
         self.encrypted_payload = encrypted_payload
 
     def generate_msg(self):
+        """
+        Generates formatted message depending on message type
+
+        Returns: string
+        """
         match self.msg_type:
             case "message_to_server":
                 return self.message_to_server()
@@ -46,6 +60,15 @@ class Message:
                 return self.success_msg()
 
     def message_to_server(self):
+        """
+        For use with message sent from client intended for other client,
+        needing to go through server first. Message in the encrypted form:
+        {message_type:send_message, recipient_id:id, timestamp:timestamp, payload:
+            {hmac:hmac, timestamp:timestamp, message:message}p-p-key
+        }sender-server-key
+
+        Returns: string
+        """
         hmac = generate_hmac.generate_new_hmac(self.public_key, self.msg_content)
 
         client_payload = f"hmac:{hmac}, timestamp:{generate_timestamp()}, message:{self.msg_content}"
@@ -58,6 +81,15 @@ class Message:
         return encrypted_server_payload
 
     def message_from_server(self):
+        """
+        For use with message sent from client intended for other client,
+        after being sent to the server. Message in the encrypted form:
+        {sender_id:id, timestamp: timestamp, payload:
+            {hmac:hmac, timestamp:timestamp, message:message}p-p-key
+        }recipient-server-key
+
+        Returns: string
+        """
         recipient_payload = f"sender_id:{self.user_id}, " \
                             f"timestamp:{generate_timestamp()}, " \
                             f"payload:{self.encrypted_payload}"
@@ -65,17 +97,38 @@ class Message:
         return recipient_payload
 
     def request_msg(self):
+        """
+        For use with message request for initial login and sign-up,
+        from client to server. Message in the unencrypted form:
+        {message_type:create_account, public_key: public_key}
+
+        Returns: string
+        """
         payload = f"message_type:{self.msg_type}, public_key:{self.public_key}"
 
         return payload
 
     def response_msg(self):
+        """
+        For use with message after initial login and sign-up, giving user's
+        credentials, from client to server. Message in the encrypted form:
+        {message_type:sign_up, username:username, password:password}client-server-key
+
+        Returns: string
+        """
         payload = f"message_type:{self.msg_type}, username:{self.username}, password:{self.password}"
         encrypted_payload = basic_crypto.encrypt_message(payload, self.shared_server_key)
 
         return encrypted_payload
 
     def success_msg(self):
+        """
+        For use with message after successful login and sign-up,
+        from server to client. Message in the encrypted form:
+        {user_id:id}client-server-key
+
+        Returns: string
+        """
         payload = f"user_id:{self.user_id}"
         encrypted_payload = basic_crypto.encrypt_message(payload, self.shared_server_key)
 
@@ -83,7 +136,7 @@ class Message:
 
 
 if __name__ == "__main__":
-    # Alice sending to Bob
+    # Alice sending message intended for Bob
 
     # user IDs and login
     alice_id = 123
@@ -134,5 +187,3 @@ if __name__ == "__main__":
     print(f"Message:\n"
           f"{message_from_server_test}\n"
           f"{message_from_server_test}\n")
-
-

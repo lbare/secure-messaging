@@ -147,26 +147,13 @@ if __name__ == "__main__":
     alice_username = "alice"
     alice_password = "password"
 
-    # public keys
+    # public key
     alice_public_key = "vcxz"
-    bob_public_key = "rewq"
-    server_public_key = "fdsa"
-
-    # private keys
-    alice_private_key = "qwer1234"
-    bob_private_key = "asdf5678"
-    server_private_key = "zxcv9012"
 
     # generate shared keys
     alice_bob_shared_key = "uiop"
     alice_server_shared_key = "hjkl"
     bob_server_shared_key = "vbnm"
-
-    # other message parameters
-    msg_type_test = "message_to_server"
-    msg_content_test = "hello there"
-    sender_id_test = alice_id
-    recipient_id_test = bob_id
 
     # tests
     sign_up_request = Message(msg_type="request", public_key=alice_public_key) \
@@ -176,17 +163,18 @@ if __name__ == "__main__":
     sign_up_success = Message(msg_type="success", user_id=alice_id) \
         .generate_msg()
 
-    message_to_server_test = Message(msg_type="message_to_server", msg_content=msg_content_test,
-                                     public_key=alice_public_key, recipient_id=recipient_id_test,
-                                     shared_server_key=alice_server_shared_key)
+    message_to_server_test = Message(msg_type="message_to_server", msg_content="hello there",
+                                     public_key=alice_public_key, recipient_id=bob_id,
+                                     shared_server_key=alice_server_shared_key, shared_client_key=alice_bob_shared_key)
     message_from_server_test = Message(msg_type="message_from_server", msg_content=message_to_server_test,
-                                       user_id=alice_id, encrypted_payload=message_to_server_test)
+                                       user_id=alice_id, recipient_server_key=bob_server_shared_key,
+                                       encrypted_payload=message_to_server_test[2])
 
     print(f"Sign Up:\n"
           f"{sign_up_request}\n"
-          f"{sign_up_response}\n"
-          f"{sign_up_success}\n")
+          f"{sign_up_response[2]}\n"
+          f"{sign_up_success[2]}\n")
 
     print(f"Message:\n"
-          f"{message_from_server_test}\n"
-          f"{message_from_server_test}\n")
+          f"{message_from_server_test[2]}\n"
+          f"{message_from_server_test[2]}\n")

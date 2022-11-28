@@ -8,20 +8,20 @@ def generate_new_DH():
     """
     return pyDH.DiffieHellman()
 
-def generate_shared_key(dh_object_1, dh_object_2):
+def generate_shared_key(dh_object_1, other_public_key):
     """
     Returns a shared key from two DH objects.
 
     Parameters:
         dh_object_1: DiffieHellman - a DH object
-        dh_object_2: DiffieHellman - a DH object
+        other_public_key: the other public key
     """
-    return dh_object_1.gen_shared_key(dh_object_2.gen_public_key())
+    return dh_object_1.gen_shared_key(other_public_key)
 
 if __name__ == "__main__":
     alice = generate_new_DH()
     bob = generate_new_DH()
-    shared = generate_shared_key(alice, bob)
+    shared = generate_shared_key(alice, bob.gen_public_key())
 
     print(f"Alice: {alice.gen_public_key()}\n")
     print(f"Bob: {bob.gen_public_key()}\n")

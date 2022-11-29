@@ -189,12 +189,15 @@ if __name__ == "__main__":
         suc_nonce, suc_tag, suc_message, str.encode(alice_server_shared_key)
     ).decode()
 
-    message_to_server_decrypt_1 = basic_crypto.decrypt_message(
+    message_to_server_decrypt = basic_crypto.decrypt_message(
         MtS_nonce_1, MtS_tag_1, MtS_message_1, str.encode(alice_server_shared_key)
     ).decode()
-    message_to_server_decrypt_1_payload = message_to_server_decrypt_1.split("payload:", 1)[1].strip().strip("(").strip(")").split(",", 2)
-    MtS_nonce_2, MtS_tag_2, MtS_message_2 = [eval(item.strip()) for item in message_to_server_decrypt_1_payload]
-    message_to_server_decrypt_2 = basic_crypto.decrypt_message(
+
+    MtS_nonce_2, MtS_tag_2, MtS_message_2 = \
+        [eval(item.strip()) for item in
+         message_to_server_decrypt.split("payload:", 1)[1].strip().strip("(").strip(")").split(",", 2)]
+
+    message_from_server_decrypt = basic_crypto.decrypt_message(
         MtS_nonce_2, MtS_tag_2, MtS_message_2, str.encode(alice_bob_shared_key)
     ).decode()
 

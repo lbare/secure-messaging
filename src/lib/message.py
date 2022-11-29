@@ -207,6 +207,6 @@ if __name__ == "__main__":
           f"Decrypted Success -  {sign_up_success_decrypt}\n")
 
     print(f"Message\n"
-          f"To Server - {message_to_server_decrypt_1}\n"
-          f"To Client - {message_to_server_decrypt_2}\n")
+          f"To Server - {message_to_server_decrypt}\n"
+          f"To Client - {message_from_server_decrypt}\n")
 

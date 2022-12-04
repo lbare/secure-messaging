@@ -1,6 +1,7 @@
 import basic_crypto
 import generate_hmac
 from datetime import datetime
+from message_handler import MessageHandler
 
 
 def generate_timestamp():
@@ -28,6 +29,7 @@ class Message:
             recipient_server_key=None,
             username=None, password=None,
             user_id=None, recipient_id=None,
+            action=None,
             encrypted_payload=None
     ):
         self.msg_type = msg_type
@@ -41,6 +43,7 @@ class Message:
         self.password = password
         self.user_id = user_id
         self.recipient_id = recipient_id
+        self.action = action
         self.encrypted_payload = encrypted_payload
 
     def generate_msg(self) -> tuple:
@@ -112,11 +115,11 @@ class Message:
         from client to server. Message in the unencrypted form:
         {message_type:create_account, public_key: public_key}
 
-        Returns: string
+        Returns: bytes
         """
         payload = f"message_type:{self.msg_type}, public_key:{self.public_key}"
 
-        return None, None, payload
+        return payload.encode()
 
     def response_msg(self):
         """
@@ -124,12 +127,12 @@ class Message:
         credentials, from client to server. Message in the encrypted form:
         {message_type:sign_up, username:username, password:password}client-server-key
 
-        Returns: tuple in the form [cipher.nonce, tag, encrypted message]
+        Returns: bytes
         """
-        payload = f"message_type:{self.msg_type}, username:{self.username}, password:{self.password}"
+        payload = f"message_type:{self.action}, username:{self.username}, password:{self.password}"
         encrypted_payload = basic_crypto.encrypt_message(str.encode(payload), str.encode(self.shared_server_key))
 
-        return encrypted_payload
+        return b"{message_type:response, nonce:" + encrypted_payload[0] + b", tag:" + encrypted_payload[1] + b", payload:" + encrypted_payload[2]+ b"}"
 
     def success_msg(self):
         """
@@ -144,8 +147,7 @@ class Message:
 
         return encrypted_payload
 
-
-if __name__ == "__main__":
+def tests():
     # Alice sending message intended for Bob
 
     # user IDs and login
@@ -209,4 +211,39 @@ if __name__ == "__main__":
     print(f"Message\n"
           f"To Server - {message_to_server_decrypt}\n"
           f"To Client - {message_from_server_decrypt}\n")
+
+def request_message_test():
+    # Client
+    alice_public_key = "vcxzvcxzvcxzvcxz"
+    req_message = Message(msg_type="request", public_key=alice_public_key).generate_msg()
+    payload = req_message
+    # *sends payload*
+
+    # Server *receives payload*
+    contents = MessageHandler.get_message_contents(payload)
+    print("Request Message Values")
+    print(contents)
+
+def response_message_test():
+    alice_username = "alice"
+    alice_password = "password"
+    alice_server_shared_key = "hjklhjklhjklhjkl"
+
+    # Client
+    res_message = Message(msg_type="response", username=alice_username, password=alice_password,
+                                              shared_server_key=alice_server_shared_key, action='sign-up').generate_msg()
+    payload = res_message
+    # *sends payload*
+
+    # Server *receives payload*
+    contents = MessageHandler.get_message_contents(payload, key=alice_server_shared_key)
+    print("Response Message Values:")
+    print(contents)
+
+
+if __name__ == "__main__":
+    #tests()
+    request_message_test()
+    print()
+    response_message_test()
 

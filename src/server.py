@@ -1,6 +1,7 @@
 import socket
 import threading
-
+import lib.db_handler as db_handler
+import lib.basic_crypto as basic_crypto
 
 class Server:
     address = (socket.gethostbyname(socket.gethostname()), 9999)
@@ -26,6 +27,25 @@ class Server:
             data = client.recv(1024).decode()
 
 
+    # Takes server db instance, user, the signup message that contains a username and password, and the client server key.
+    # Adds that user into the DB and sends the response message of the user_id.
+    # Does not return anything
+    def handle_signup_process(self, db, user, signup_message, client_server_key):
+        username = signup_message.username
+        password = signup_message.password
+        # Decrypt username and password
+        user_id = db.insert_new_user(username, password)
+        response_message = user_id.encode()
+
+        # Encrypt response message
+        encrypted_response_message = basic_crypto.encrypt_message(response_message, client_server_key)
+        msg = "{message_type:response, nonce:" + encrypted_response_message[0] + ", tag:" + encrypted_response_message[1] + ", user_id:" + encrypted_response_message[2]+"}"
+        self.users[user].send(msg.encode())
+
+        return
+
+
+
 def main():
     server = Server()
     server_socket = server.server
@@ -37,6 +57,7 @@ def main():
         server.users[user.decode()] = client
         new_thread = threading.Thread(target=server.handle_client, args=[client])
         new_thread.start()
+
 
 
 if __name__ == '__main__':

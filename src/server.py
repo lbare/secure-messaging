@@ -44,6 +44,22 @@ class Server:
 
         return
 
+    # Takes server db instance, user, the login message that contains a username and password, and the client server key.
+    # Finds that user in the DB and sends the response message of the user_id.
+    # Does not return anything
+    def handle_login_process(self, db, user, login_message, client_server_key):
+        username = login_message.username
+        password = login_message.password
+        # Decrypt username and password
+        user_id = db.login(username, password)
+        response_message = user_id.encode()
+
+        # Encrypt response message
+        encrypted_response_message = basic_crypto.encrypt_message(response_message, client_server_key)
+        msg = "{message_type:response, nonce:" + encrypted_response_message[0] + ", tag:" + encrypted_response_message[1] + ", user_id:" + encrypted_response_message[2]+"}"
+        self.users[user].send(msg.encode())
+
+        return
 
 
 def main():

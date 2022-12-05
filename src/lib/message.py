@@ -51,17 +51,16 @@ class Message:
 
         Returns: bytes
         """
-        match self.msg_type:
-            case "message_to_server":
-                return self.message_to_server()
-            case "message_from_server":
-                return self.message_from_server()
-            case "request":
-                return self.request_msg()
-            case "response":
-                return self.response_msg()
-            case "success":
-                return self.success_msg()
+        if self.msg_type == "message_to_server":
+            return self.message_to_server()
+        elif self.msg_type == "message_from_server":
+            return self.message_from_server()
+        elif self.msg_type == "request":
+            return self.request_msg()
+        elif self.msg_type == "response":
+            return self.response_msg()
+        elif self.msg_type == "success":
+            return self.success_msg()
 
     def message_to_server(self):
         """
@@ -131,7 +130,8 @@ class Message:
         Returns: bytes
         """
         payload = f"message_type:{self.action}, username:{self.username}, password:{self.password}"
-        nonce, tag, encrypted_payload = basic_crypto.encrypt_message(str.encode(payload), str.encode(self.shared_server_key))
+        nonce, tag, encrypted_payload = basic_crypto.encrypt_message(str.encode(payload),
+                                                                     str.encode(self.shared_server_key))
 
         return b"{message_type:response, nonce:" + nonce + b", tag:" + tag + b", payload:" + encrypted_payload + b"}"
 
@@ -144,9 +144,11 @@ class Message:
         Returns: tuple in the form [cipher.nonce, tag, encrypted message]
         """
         payload = f"user_id:{self.user_id}"
-        nonce, tag, encrypted_payload = basic_crypto.encrypt_message(str.encode(payload), str.encode(self.shared_server_key))
+        nonce, tag, encrypted_payload = basic_crypto.encrypt_message(str.encode(payload),
+                                                                     str.encode(self.shared_server_key))
 
         return b"{message_type:success, nonce:" + nonce + b", tag:" + tag + b", payload:" + encrypted_payload + b"}"
+
 
 def tests():
     # Alice sending message intended for Bob
@@ -167,9 +169,9 @@ def tests():
 
     # encrypting tests
     MtS_nonce_1, MtS_tag_1, MtS_message_1 = Message(msg_type="message_to_server", msg_content="hello there",
-                                              public_key=alice_public_key, recipient_id=bob_id,
-                                              shared_server_key=alice_server_shared_key,
-                                              shared_client_key=alice_bob_shared_key) \
+                                                    public_key=alice_public_key, recipient_id=bob_id,
+                                                    shared_server_key=alice_server_shared_key,
+                                                    shared_client_key=alice_bob_shared_key) \
         .generate_msg()
 
     message_to_server_decrypt = basic_crypto.decrypt_message(
@@ -193,6 +195,7 @@ def request_message_test():
     print("Request Message Values")
     print(contents)
 
+
 def response_message_test():
     alice_username = "alice"
     alice_password = "password"
@@ -200,13 +203,14 @@ def response_message_test():
 
     # Client
     payload = Message(msg_type="response", username=alice_username, password=alice_password,
-                                              shared_server_key=alice_server_shared_key, action='sign-up').generate_msg()
+                      shared_server_key=alice_server_shared_key, action='sign-up').generate_msg()
     # *sends payload*
 
     # Server *receives payload*
     contents = MessageHandler.get_message_contents(payload, server_key=alice_server_shared_key)
     print("Response Message Values:")
     print(contents)
+
 
 def client_message_test():
     alice_id = "alice"
@@ -217,7 +221,7 @@ def client_message_test():
 
     # *client 1 generates payload*
     payload1 = Message(msg_type="message_to_server", recipient_id=bob_id, msg_content="what's up big dog",
-                      shared_client_key=alice_bob_key, shared_server_key=alice_server_shared_key)\
+                       shared_client_key=alice_bob_key, shared_server_key=alice_server_shared_key) \
         .generate_msg()
 
     # *client 1 sends payload to server*
@@ -226,15 +230,16 @@ def client_message_test():
     contents1 = MessageHandler.get_message_contents(payload1, server_key=alice_server_shared_key)
     print(contents1)
 
-
     # *server sends payload to client 2*
     payload2 = Message(msg_type="message_from_server", user_id=alice_id, encrypted_payload=contents1["payload"],
-                       shared_client_key=alice_bob_key, recipient_server_key=bob_server_shared_key)\
+                       shared_client_key=alice_bob_key, recipient_server_key=bob_server_shared_key) \
         .generate_msg()
 
     # *client 2 receives payload*
-    contents2 = MessageHandler.get_message_contents(payload2, server_key=bob_server_shared_key, client_key=alice_bob_key)
+    contents2 = MessageHandler.get_message_contents(payload2, server_key=bob_server_shared_key,
+                                                    client_key=alice_bob_key)
     print(contents2)
+
 
 def success_message_test():
     alice_server_shared_key = "hjklhjklhjklhjkl"
@@ -250,10 +255,9 @@ def success_message_test():
 
 
 if __name__ == "__main__":
-    #tests()
-    #request_message_test()
-    #print()
-    #response_message_test()
-    #client_message_test()
+    # tests()
+    # request_message_test()
+    # print()
+    # response_message_test()
+    # client_message_test()
     success_message_test()
-

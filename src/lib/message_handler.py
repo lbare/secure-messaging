@@ -7,9 +7,10 @@ class MessageHandler():
     def _get_message_contents_request(cls, message_bytes):
         parts = message_bytes.split(b',', 2)
     
-        contents = {}
-        contents['message_type'] = parts[0].split(b':')[1].decode()
-        contents['public_key'] = parts[1].split(b':')[1].decode()
+        contents = {
+            'message_type': parts[0].split(b':')[1].decode(),
+            'public_key': parts[1].split(b':')[1].decode()
+        }
 
         return contents
 
@@ -23,7 +24,8 @@ class MessageHandler():
 
         contents = {'message_type': inner_parts[0].split(b':')[1].decode(),
                     'username': inner_parts[1].split(b':')[1].decode(),
-                    'password': inner_parts[2].split(b':')[1].decode()}
+                    'password': inner_parts[2].split(b':')[1].decode()
+                    }
         return contents
 
     @classmethod
@@ -53,7 +55,8 @@ class MessageHandler():
         contents = {'message_type': inner_parts[0].split(b':', 1)[1].decode(),
                     'recipient_id': inner_parts[1].split(b':', 1)[1].decode(),
                     'timestamp': inner_parts[2].split(b':', 1)[1].decode(),
-                    'payload': message_bytes_2}
+                    'payload': message_bytes_2
+                    }
 
         return contents
 
@@ -75,7 +78,8 @@ class MessageHandler():
         contents = {'message_type': message_type.decode(),
                     'sender_id': sender_id.decode(),
                     'timestamp:': timestamp.decode(),
-                    'payload': decrypted_payload_2.decode()}
+                    'payload': decrypted_payload_2.decode()
+                    }
 
         return contents
 

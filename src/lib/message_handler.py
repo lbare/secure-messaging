@@ -28,13 +28,15 @@ class MessageHandler():
 
     @classmethod
     def _get_message_contents_success(cls, message_bytes, key):
-        _, nonce, tag, encrypted_payload = \
+        message_type, nonce, tag, encrypted_payload = \
             [msg.split(b":", 1)[1] for msg in message_bytes.strip(b'{}').split(b', ', 4)]
  
         decrypted_payload = basic_crypto.decrypt_message(nonce, tag, encrypted_payload, str.encode(key))
         parts = decrypted_payload.split(b',', 1)
 
-        contents = {'user_id': parts[0].split(b':')[1].decode()}
+        contents = {'message_type': message_type.decode(),
+                    'user_id': parts[0].split(b':')[1].decode()
+                    }
         return contents
 
 
@@ -59,7 +61,7 @@ class MessageHandler():
     def _get_message_contents_from_server(cls, message_bytes, server_key, client_key):
         message_bytes_1, message_bytes_2 = message_bytes.split(b"$$$", 2)
 
-        _, nonce_1, tag_1, encrypted_payload_1 = \
+        message_type, nonce_1, tag_1, encrypted_payload_1 = \
             [msg.split(b":", 1)[1] for msg in message_bytes_1.strip(b'{}').split(b', ', 4)]
 
         decrypted_payload_1 = basic_crypto.decrypt_message(nonce_1, tag_1, encrypted_payload_1, str.encode(server_key))
@@ -70,7 +72,8 @@ class MessageHandler():
 
         decrypted_payload_2 = basic_crypto.decrypt_message(nonce_2, tag_2, encrypted_payload_2, str.encode(client_key))
 
-        contents = {'sender_id': sender_id.decode(),
+        contents = {'message_type': message_type.decode(),
+                    'sender_id': sender_id.decode(),
                     'timestamp:': timestamp.decode(),
                     'payload': decrypted_payload_2.decode()}
 

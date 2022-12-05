@@ -1,5 +1,6 @@
 import socket
 import threading
+import lib.db_handler as db_handler
 import lib.basic_crypto as basic_crypto
 
 class Server:
@@ -72,6 +73,7 @@ def main():
         server.users[user.decode()] = client
         new_thread = threading.Thread(target=server.handle_client, args=[client])
         new_thread.start()
+
 
 
 if __name__ == '__main__':

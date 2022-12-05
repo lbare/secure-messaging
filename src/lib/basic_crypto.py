@@ -5,6 +5,7 @@ from pbkdf2 import PBKDF2
 
 
 # Takes in a message and key, both in bytes.
+# Returns nonce, tag and encrypted message all in bytes.
 def encrypt_message(message, key):
     cipher = AES.new(key, AES.MODE_GCM)
 

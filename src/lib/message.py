@@ -1,5 +1,4 @@
 import basic_crypto
-import generate_hmac
 from datetime import datetime
 from message_handler import MessageHandler
 
@@ -46,11 +45,11 @@ class Message:
         self.action = action
         self.encrypted_payload = encrypted_payload
 
-    def generate_msg(self) -> tuple:
+    def generate_msg(self) -> bytes:
         """
         Generates formatted message depending on message type
 
-        Returns: tuple in the form [cipher.nonce, tag, encrypted message]
+        Returns: bytes
         """
         match self.msg_type:
             case "message_to_server":
@@ -69,36 +68,34 @@ class Message:
         For use with message sent from client intended for other client,
         needing to go through server first. Message in the encrypted form:
         {message_type:send_message, recipient_id:id, timestamp:timestamp, payload:
-            {hmac:hmac, timestamp:timestamp, message:message}p-p-key
+            {timestamp:timestamp, message:message}p-p-key
         }sender-server-key
 
         Returns: tuple in the form [cipher.nonce, tag, encrypted message],
         encrypted message is a nested tuple of the same form
         """
-        hmac = generate_hmac.generate_new_hmac(self.shared_client_key, self.msg_content)
-
-        client_payload = f"hmac:{hmac}, timestamp:{generate_timestamp()}, message:{self.msg_content}"
+        client_payload = f"timestamp:{generate_timestamp()}, message:{self.msg_content}"
         encrypted_client_payload = basic_crypto.encrypt_message(
             str.encode(client_payload), str.encode(self.shared_client_key)
         )
 
         server_payload = f"message_type:{self.msg_type}, recipient_id:{self.recipient_id}, " \
                          f"timestamp:{generate_timestamp()}, payload:{encrypted_client_payload}"
-        encrypted_server_payload = basic_crypto.encrypt_message(
+        nonce, tag, encrypted_server_payload = basic_crypto.encrypt_message(
             str.encode(server_payload), str.encode(self.shared_server_key)
         )
 
-        return encrypted_server_payload
+        return b"{message_type:message_to_server, nonce:" + nonce + b", tag:" + tag + b", payload:" + encrypted_server_payload + b"}"
 
     def message_from_server(self):
         """
         For use with message sent from client intended for other client,
         after being sent to the server. Message in the encrypted form:
         {sender_id:id, timestamp: timestamp, payload:
-            {hmac:hmac, timestamp:timestamp, message:message}p-p-key
+            {timestamp:timestamp, message:message}p-p-key
         }recipient-server-key
 
-        Returns: tuple in the form [cipher.nonce, tag, encrypted message]
+        Returns: bytes
         """
         recipient_payload = f"sender_id:{self.user_id}, " \
                             f"timestamp:{generate_timestamp()}, " \
@@ -107,7 +104,7 @@ class Message:
             str.encode(recipient_payload), str.encode(self.recipient_server_key)
         )
 
-        return encrypted_recipient_payload
+        return str.encode(encrypted_recipient_payload)
 
     def request_msg(self):
         """
@@ -240,10 +237,27 @@ def response_message_test():
     print("Response Message Values:")
     print(contents)
 
+def client_message_test():
+    bob_id = "bob"
+    alice_bob_key = "asdfasdfasdfasdf"
+    alice_server_shared_key = "hjklhjklhjklhjkl"
+
+    # Client 1 - Alice
+    payload = Message(msg_type="message_to_server", recipient_id=bob_id, msg_content="what's up big dog",
+                      shared_client_key=alice_bob_key, shared_server_key=alice_server_shared_key)\
+        .generate_msg()
+
+    # *client 1 sends payload*
+
+    # *server receives payload*
+    contents = MessageHandler.get_message_contents(payload, key=alice_server_shared_key)
+    print(contents)
+
 
 if __name__ == "__main__":
     #tests()
-    request_message_test()
-    print()
-    response_message_test()
+    #request_message_test()
+    #print()
+    #response_message_test()
+    client_message_test()
 

@@ -67,14 +67,15 @@ class Message:
         """
         For use with message sent from client intended for other client,
         needing to go through server first. Message in the encrypted form:
-        {message_type:send_message, recipient_id:id, timestamp:timestamp, payload:
-            {timestamp:timestamp, message:message}p-p-key
-        }sender-server-key
+        {message_type:message_to_server, nonce:nonce, tag:tag, payload:{message_type:send_message, recipient_id:id, timestamp:timestamp}sender-server-key}
+        $$$
+        {message_type:message_to_server, nonce:nonce tag:tag payload:{timestamp:timestamp, message:message}}p-p-key
+
 
         Returns: tuple in the form [cipher.nonce, tag, encrypted message],
         encrypted message is a nested tuple of the same form
         """
-        client_payload = f"timestamp:{generate_timestamp()}, message:{self.msg_content}"
+        client_payload = f"{{timestamp:{generate_timestamp()}, message:{self.msg_content}}}"
         nonce_1, tag_1, encrypted_client_payload = basic_crypto.encrypt_message(
             str.encode(client_payload), str.encode(self.shared_client_key)
         )
@@ -82,32 +83,32 @@ class Message:
         inner_payload = b"{message_type:message_to_server, nonce:" + nonce_1 + b", tag:" + tag_1 + b", payload:" + encrypted_client_payload + b"}"
 
         server_payload = f"message_type:{self.msg_type}, recipient_id:{self.recipient_id}, " \
-                         f"timestamp:{generate_timestamp()}, payload:{inner_payload}"
+                         f"timestamp:{generate_timestamp()}"
         nonce_2, tag_2, encrypted_server_payload = basic_crypto.encrypt_message(
             str.encode(server_payload), str.encode(self.shared_server_key)
         )
 
-        return b"{message_type:message_to_server, nonce:" + nonce_2 + b", tag:" + tag_2 + b", payload:" + encrypted_server_payload + b"}"
+        return b"{message_type:message_to_server, nonce:" + nonce_2 + b", tag:" + tag_2 + b", payload:" + encrypted_server_payload + b"}$$$" + inner_payload
 
     def message_from_server(self):
         """
         For use with message sent from client intended for other client,
         after being sent to the server. Message in the encrypted form:
-        {sender_id:id, timestamp: timestamp, payload:
-            {timestamp:timestamp, message:message}p-p-key
-        }recipient-server-key
+        {nonce:nonce, tag:tag, payload:{sender_id:id, timestamp: timestamp, payload:payload}recipient-server-key}
+        $$$
+        {timestamp:timestamp, message:message}p-p-key
+
 
         Returns: bytes
         """
         recipient_payload = f"sender_id:{self.user_id}, " \
-                            f"timestamp:{generate_timestamp()}, " \
-                            f"payload:{self.encrypted_payload}"
+                            f"timestamp:{generate_timestamp()}"
 
         nonce, tag, encrypted_recipient_payload = basic_crypto.encrypt_message(
             str.encode(recipient_payload), str.encode(self.recipient_server_key)
         )
 
-        return b"{message_type:message_from_server, nonce:" + nonce + b", tag:" + tag + b", payload:" + encrypted_recipient_payload + b"}"
+        return b"{message_type:message_from_server, nonce:" + nonce + b", tag:" + tag + b", payload:" + encrypted_recipient_payload + b"}$$$" + self.encrypted_payload
 
     def request_msg(self):
         """
@@ -241,8 +242,8 @@ def client_message_test():
 
 if __name__ == "__main__":
     #tests()
-    #request_message_test()
+    request_message_test()
     #print()
-    #response_message_test()
+    response_message_test()
     client_message_test()
 

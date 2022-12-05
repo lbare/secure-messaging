@@ -15,10 +15,10 @@ class Client:
 
     def __init__(self):
         self.databaseHandler = db.ClientDatabaseHandler()
-       #self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-       # self.recv_thread = threading.Thread(target=self.recv, daemon=True)
-        #self.recv_thread.start()
-        #self.socket.connect((config["ip"], int(config["port"])))
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.recv_thread = threading.Thread(target=self.recv, daemon=True)
+        self.recv_thread.start()
+        self.socket.connect((config["ip"], int(config["port"])))
         self.client_server_key = None
         self.user_id = None
         self.conversation_keys = {}

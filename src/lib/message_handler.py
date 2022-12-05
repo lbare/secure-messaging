@@ -61,7 +61,7 @@ class MessageHandler():
         return contents
 
     @classmethod
-    def _get_message_contents_from_server(cls, message_bytes, server_key, client_key):
+    def _get_message_contents_from_server(cls, message_bytes, server_key, client_key_dict):
         message_bytes_1, message_bytes_2 = message_bytes.split(b"$$$", 2)
 
         message_type, nonce_1, tag_1, encrypted_payload_1 = \
@@ -69,6 +69,8 @@ class MessageHandler():
 
         decrypted_payload_1 = basic_crypto.decrypt_message(nonce_1, tag_1, encrypted_payload_1, str.encode(server_key))
         sender_id, timestamp = [msg.split(b':', 1)[1] for msg in decrypted_payload_1.split(b', ', 2)]
+
+        client_key = client_key_dict[sender_id]
 
         _, nonce_2, tag_2, encrypted_payload_2 = \
             [msg.split(b":", 1)[1] for msg in message_bytes_2.strip(b'{}').split(b', ', 4)]
@@ -100,7 +102,7 @@ class MessageHandler():
 
 
     @classmethod
-    def get_message_contents(cls, message_bytes, server_key=None, client_key=None):
+    def get_message_contents(cls, message_bytes, server_key=None, client_key_dict=None):
         message_type = message_bytes.split(b',', 1)[0].split(b':')[1]
         #print(f"message type: {message_type.decode()}")
         
@@ -108,7 +110,7 @@ class MessageHandler():
             case b"message_to_server":
                 return cls._get_message_contents_to_server(message_bytes, server_key)
             case b"message_from_server":
-                return cls._get_message_contents_from_server(message_bytes, server_key=server_key, client_key=client_key)
+                return cls._get_message_contents_from_server(message_bytes, server_key=server_key, client_key=client_key_dict)
             case b"request":
                 return cls._get_message_contents_request(message_bytes)
             case b"response":

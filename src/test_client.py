@@ -2,6 +2,9 @@ import socket
 import threading
 import lib.basic_crypto as basic_crypto
 import lib.db_handler as db
+import lib.generate_keys as key_gen
+from lib.message import Message
+from lib.message_handler import MessageHandler as mh
 
 config = {}
 
@@ -15,13 +18,15 @@ class Client:
 
     def __init__(self):
         self.databaseHandler = db.ClientDatabaseHandler()
+
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.recv_thread = threading.Thread(target=self.recv, daemon=True)
-        self.recv_thread.start()
-        self.socket.connect((config["ip"], int(config["port"])))
+
+        self.key_generator = key_gen.generate_new_DH()
         self.client_server_key = None
         self.user_id = None
         self.conversation_keys = {}
+
 
         self.location = "Home Page"
         self.handlers = {
@@ -39,7 +44,7 @@ class Client:
 
     def recv(self):
         while 1:
-            message = self.socket.recv(1024).decode()
+            message = self.socket.recv(1024)
             if not message:
                 break
             self.handle_message(message)
@@ -49,6 +54,16 @@ class Client:
         while command != "exit":
             self.handle_command(command)
             command = input(f"{self.location} >> ")
+
+    def _initialize_server_connection(self):
+        self.socket.connect((config["ip"], int(config["port"])))
+        req_message = Message(msg_type="request", public_key=self.key_generator.gen_public_key()).generate_msg()
+        self.socket.sendall(req_message)
+        resp = self.socket.recv(1024)
+        content = mh.get_message_contents(resp)
+        self.client_server_key = key_gen.generate_shared_key(self.key_generator, content["public_key"])
+        self.recv_thread.start()
+
 
     def handle_command(self, command):
         if not command:
@@ -64,6 +79,8 @@ class Client:
     def login(self, args):
         username = args[0]
         password = args[1]
+
+
         result = self.databaseHandler.login(username, password)
         if not result:
             print("Login failed")
@@ -71,6 +88,9 @@ class Client:
         self.user_id = result
         print("Login successful")
         self.location = "Main Menu"
+
+    def _remote_login(self, username, password):
+        pass
 
     def sign_up(self, args):
         username = args[0]
@@ -109,10 +129,10 @@ class Client:
         self.location = "Home Page"
 
     def handle_message(self, message):
+        content = mh.get_message_contents(message, server_key=self.client_server_key)
         message_type = message.get_message_type()
         if message_type == "response":
             self.handle_signup_response(message)
-        pass
 
     def handle_signup_response(self, message):
         self.user_id = message.get_user_id()

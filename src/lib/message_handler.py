@@ -83,6 +83,21 @@ class MessageHandler():
 
         return contents
 
+    @classmethod
+    def _get_message_contents_client_key_request(cls, message_bytes, key):
+        message_type, nonce, tag, encrypted_payload = \
+            [msg.split(b":", 1)[1] for msg in message_bytes.strip(b'{}').split(b', ', 4)]
+ 
+        decrypted_payload = basic_crypto.decrypt_message(nonce, tag, encrypted_payload, str.encode(key))
+        parts = decrypted_payload.split(b',', 2)
+
+        contents = {'message_type': message_type.decode(),
+                    'id': parts[0].split(b':')[1].decode(),
+                    'public_key': parts[1].split(b':')[1].decode(),
+                    }
+
+        return contents
+
 
     @classmethod
     def get_message_contents(cls, message_bytes, server_key=None, client_key=None):
@@ -100,4 +115,6 @@ class MessageHandler():
                 return cls._get_message_contents_response(message_bytes, server_key)
             case b"success":
                 return cls._get_message_contents_success(message_bytes, server_key)
+            case b"client_key_request":
+                return cls._get_message_contents_client_key_request(message_bytes, server_key)
 

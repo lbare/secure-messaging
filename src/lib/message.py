@@ -62,6 +62,20 @@ class Message:
                 return self.response_msg()
             case "success":
                 return self.success_msg()
+            case "client_key_request":
+                return self.client_key_request()
+
+    def client_key_request(self):
+        """
+        For exchanging client keys so they can perform DH key exchange.
+        Of the form: {message_type=client_key_request, user_id=recipient_id, public_key=public_key}sender_server_key.
+        Returns tuple in the form [cipher.nonce, tag, encrypted message].
+        """
+        payload = f"id:{self.recipient_id}, public_key:{self.public_key}"
+
+        nonce, tag, encrypted_payload = basic_crypto.encrypt_message(str.encode(payload), str.encode(self.shared_server_key))
+
+        return b"{message_type:client_key_request, nonce:" + nonce + b", tag:" + tag + b", payload:" + encrypted_payload + b"}"
 
     def message_to_server(self):
         """
@@ -249,11 +263,27 @@ def success_message_test():
     print(contents)
 
 
+def client_key_request_test():
+    alice_public_key = "vcxzvcxzvcxzvcxz"
+    bob_id = "bob"
+    alice_server_shared_key = "hjklhjklhjklhjkl"
+
+    # Client
+    payload = Message(msg_type="client_key_request", recipient_id=bob_id, public_key=alice_public_key ,shared_server_key=alice_server_shared_key).generate_msg()
+    # *sends payload*
+
+    # Server *receives payload*
+    contents = MessageHandler.get_message_contents(payload, server_key=alice_server_shared_key)
+    print("Client Key Request Message Values:")
+    print(contents)
+
+
 if __name__ == "__main__":
     #tests()
     #request_message_test()
     #print()
     #response_message_test()
     #client_message_test()
-    success_message_test()
+    #success_message_test()
+    client_key_request_test()
 

@@ -1,6 +1,6 @@
 import sqlite3
 import uuid
-import basic_crypto
+import src.lib.basic_crypto as basic_crypto
 import time
 
 
@@ -12,7 +12,7 @@ class DatabaseError(Exception):
     pass
 
 
-class Message:
+class DatabaseMessage:
 
     def __init__(self, message, timestamp, sender):
         self.message = message
@@ -80,8 +80,8 @@ class ClientDatabaseHandler:
 
     def sign_up(self, username, password, user_id):
         self._initialize_database(username)
-        plain_decryptor = basic_crypto.generate_key()
-        nonce, tag, decrypter = basic_crypto.encrypt_message(plain_decryptor,
+        plain_decrypter = basic_crypto.generate_key()
+        nonce, tag, decrypter = basic_crypto.encrypt_message(plain_decrypter,
                                                              basic_crypto.make_AES_key(password))
         password_hash = basic_crypto.hash_password(password)
         self.database.execute('''INSERT INTO localUser(USERNAME, PASSWORD_HASH, USER_ID, DECRYPTER, NONCE, TAG)
@@ -119,18 +119,31 @@ class ClientDatabaseHandler:
             user_id = contact[0]
         if user_id is None:
             return False
-        for entry in self.database.execute(f'''SELECT TIMESTAMP, SENDER, MESSAGE, NONCE, TAG
-                                                FROM message{sanitize(str(user_id))}'''):
-            timestamp = entry[0]
-            sender = entry[1]
-            message_enc = entry[2]
-            nonce = entry[3]
-            tag = entry[4]
-            message = basic_crypto.decrypt_message(nonce, tag, message_enc, self.decrypter).decode()
-            messages.append(Message(message, timestamp, sender))
+        try:
+            for entry in self.database.execute(f'''SELECT TIMESTAMP, SENDER, MESSAGE, NONCE, TAG
+                                                    FROM message{sanitize(str(user_id))}'''):
+                timestamp = entry[0]
+                sender = entry[1]
+                message_enc = entry[2]
+                nonce = entry[3]
+                tag = entry[4]
+                message = basic_crypto.decrypt_message(nonce, tag, message_enc, self.decrypter).decode()
+                messages.append(DatabaseMessage(message, timestamp, sender))
 
-        messages.sort()
+            messages.sort()
+        except sqlite3.OperationalError:
+            return []
         return messages
+
+    def delete_conversation(self, contact_name):
+        user_id = None
+        for contact in self.database.execute('''SELECT ID FROM contact WHERE USERNAME = ?''', (contact_name,)):
+            user_id = contact[0]
+        if user_id is None:
+            return False
+        self.database.execute(f'''DROP TABLE IF EXISTS message{sanitize(str(user_id))}''')
+        self.database.commit()
+        return True
 
 
 class ServerDatabaseHandler:
@@ -186,7 +199,7 @@ class ServerDatabaseHandler:
 
 def test_sign_up():
     db = ClientDatabaseHandler()
-    db.sign_up("Connor Ebert", "password", 1)
+    db.sign_up("Connor-Ebert", "password", 1)
     db.add_contact(2, "Bob")
     db.add_message(2, "Hi", int(time.time()), "Bob")
     db.logout()
@@ -194,7 +207,7 @@ def test_sign_up():
 
 def test_login_and_message_set_and_get():
     db = ClientDatabaseHandler()
-    db.login("Connor Ebert", "password")
+    db.login("Connor-Ebert", "password")
     db.add_message(2, "hello", int(time.time()), "Me")
     time.sleep(1)
     db.add_message(2, "how", int(time.time()), "Bob")
@@ -212,4 +225,4 @@ def server_test_login():
 
 
 if __name__ == '__main__':
-    server_test_login()
+    test_login_and_message_set_and_get()

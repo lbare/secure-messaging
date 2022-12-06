@@ -1,4 +1,4 @@
-import src.lib.basic_crypto as basic_crypto
+import lib.basic_crypto as basic_crypto
 
 
 class MessageHandler:

@@ -159,7 +159,7 @@ class Client:
     def _initiate_DH_exchange(self, recipient_id):
         my_public_key = self.key_generator.gen_public_key()
         resp = Message(msg_type="client_key_request", recipient_id=recipient_id,
-                       public_key=my_public_key).generate_msg()
+                       public_key=my_public_key, shared_server_key=self.client_server_key).generate_msg()
         self.socket.sendall(resp)
         while recipient_id not in self.conversation_keys.keys():
             pass
@@ -213,6 +213,8 @@ class Client:
         payload = content["payload"]
         sender_name = self.databaseHandler.get_username(sender_id)
         self.databaseHandler.add_message(sender_id, payload, timestamp, sender_name)
+        if self.location == f"Message {sender_name}":
+            print(f"{timestamp} {sender_name}:{payload}")
 
     def handle_signup_response(self, content, password):
         user_id = content["user_id"]

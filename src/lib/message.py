@@ -1,6 +1,6 @@
-import src.lib.basic_crypto as basic_crypto
+import lib.basic_crypto as basic_crypto
 from datetime import datetime
-from src.lib.message_handler import MessageHandler
+from lib.message_handler import MessageHandler
 
 
 def generate_timestamp():

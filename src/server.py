@@ -74,6 +74,8 @@ class Server:
                 return
             elif message_type == "add-contact":
                 self.handle_add_contact(client, content, shared_key)
+            elif message_type == "client_key_request":
+                self.handle_client_key_request()
             else:
                 print(f"Invalid message type: {message_type}")
             data = client.recv(1024)
@@ -142,6 +144,16 @@ class Server:
                       encrypted_payload=message["payload"], recipient_server_key=recipient_server_key).generate_msg()
         self.active_users[recipient_id].sendall(msg)
         return timestamp
+
+    def handle_client_key_request(self, content, client_server_key):
+        recipient_id = content["id"]
+        public_key = content["public_key"]
+        recipient_server_key = self.active_keys[recipient_id]
+        sender_id = [key for key, value in self.active_keys.items() if value == client_server_key][0]
+        msg = Message(msg_type="client_key_request", recipient_id=sender_id,
+                      public_key=public_key, shared_server_key=recipient_server_key).generate_msg()
+        self.active_users[recipient_id].sendall(msg)
+
 
 
 def main():

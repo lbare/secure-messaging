@@ -1,6 +1,6 @@
 import sqlite3
 import uuid
-import src.lib.basic_crypto as basic_crypto
+import lib.basic_crypto as basic_crypto
 import time
 import os
 
@@ -30,7 +30,7 @@ class DatabaseMessage:
         return other.timestamp == self.timestamp
 
     def __repr__(self):
-        return f"{self.sender}:{self.message}"
+        return f"{self.timestamp} {self.sender}:{self.message}"
 
 
 class ClientDatabaseHandler:

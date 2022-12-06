@@ -6,6 +6,7 @@ import lib.generate_keys as key_gen
 from lib.message import Message
 from lib.message import generate_timestamp
 from lib.message_handler import MessageHandler as mh
+import time
 
 config = {}
 
@@ -79,11 +80,11 @@ class Client:
             args = command[1:]
         else:
             args = []
-        #try:
-        self.handlers[method](args)
-        # except (KeyError, IndexError) as e:
-        #     print("Invalid command")
-        #     print(e)
+        try:
+            self.handlers[method](args)
+        except (KeyError, IndexError) as e:
+            print("Invalid command")
+            print(e)
 
     def login(self, args):
         args = args[0].split()
@@ -150,7 +151,6 @@ class Client:
 
         if recipient_id not in self.conversation_keys.keys():
             self._initiate_DH_exchange(recipient_id)
-        print(self.conversation_keys)
         message = Message(msg_type="message_to_server", recipient_id=recipient_id,
                           msg_content=content, shared_client_key=self.conversation_keys[str(recipient_id)],
                           shared_server_key=self.client_server_key).generate_msg()
@@ -202,7 +202,6 @@ class Client:
         self.socket.sendall(msg)
 
     def handle_message(self, message):
-        print(self.client_server_key)
         content = mh.get_message_contents(message, server_key=self.client_server_key,
                                           client_key_dict=self.conversation_keys)
         message_type = content["message_type"]
@@ -214,15 +213,13 @@ class Client:
             self.handle_add_contact_response(content)
 
     def handle_incoming_message(self, content):
-        print(content)
         sender_id = content["sender_id"]
         timestamp = content["timestamp"]
         payload = content["payload"]
-        message = payload.split(',', 1)[1].split(":", 1)[1]
+        message = payload.split(',', 1)[1].split(":", 1)[1][:-1]
         sender_name = self.databaseHandler.get_username(sender_id)
         self.databaseHandler.add_message(sender_id, message, timestamp, sender_name)
-        if self.location == f"Message {sender_name}":
-            print(f"{timestamp} {sender_name}:{payload}")
+        print(f"{sender_name}: {message}")
 
     def handle_signup_response(self, content, password):
         user_id = content["user_id"]

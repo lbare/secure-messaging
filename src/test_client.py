@@ -86,7 +86,7 @@ class Client:
         #     print(e)
 
     def login(self, args):
-        args = args.split()
+        args = args[0].split()
         username = args[0]
         password = args[1]
         user_id = self._remote_login(username, password)
@@ -119,7 +119,7 @@ class Client:
         return user_id
 
     def sign_up(self, args):
-        args = args.split()
+        args = args[0].split()
         username = args[0]
         password = args[1]
         msg = Message(msg_type="response", username=username, password=password,
@@ -142,7 +142,7 @@ class Client:
         exit(0)
 
     def msg(self, args):
-        args = args.split(" ", 1)
+        args = args[0].split(" ", 1)
         recipient = args[0]
         content = args[1]
 

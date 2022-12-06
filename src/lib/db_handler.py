@@ -89,7 +89,6 @@ class ClientDatabaseHandler:
 
         self.database.commit()
         self._close_database()
-        self.login(username, password)
 
     def logout(self):
         self._close_database()
@@ -153,7 +152,7 @@ class ServerDatabaseHandler:
         self.initialize_database()
 
     def initialize_database(self):
-        self.database = sqlite3.connect('credentials.db')
+        self.database = sqlite3.connect('credentials.db', check_same_thread=False)
         self.database.execute('''CREATE TABLE IF NOT EXISTS users(
         ID INT PRIMARY KEY,
         USERNAME TEXT,

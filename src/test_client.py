@@ -27,7 +27,6 @@ class Client:
         self.user_id = None
         self.conversation_keys = {}
 
-
         self.location = "Home Page"
         self.handlers = {
             "sign-up": self.sign_up,
@@ -38,7 +37,7 @@ class Client:
             "delete-conversation": self.delete_conversation,
             "delete-account": self.delete_account
         }
-
+        self._initialize_server_connection()
         self.start()
         self.databaseHandler.logout()
 
@@ -61,9 +60,7 @@ class Client:
         self.socket.sendall(req_message)
         resp = self.socket.recv(1024)
         content = mh.get_message_contents(resp)
-        self.client_server_key = key_gen.generate_shared_key(self.key_generator, content["public_key"])
-        self.recv_thread.start()
-
+        self.client_server_key = key_gen.generate_shared_key(self.key_generator, int(content['public_key']))
 
     def handle_command(self, command):
         if not command:
@@ -73,35 +70,52 @@ class Client:
         args = command[1:]
         try:
             self.handlers[method](args)
-        except (KeyError, IndexError):
+        except (KeyError, IndexError) as e:
             print("Invalid command")
+            print(e)
 
     def login(self, args):
         username = args[0]
         password = args[1]
+        user_id = self._remote_login(username, password)
 
+        if user_id == 'None':
+            print("Login failed at server")
+            return
 
         result = self.databaseHandler.login(username, password)
         if not result:
-            print("Login failed")
+            print("Login failed locally")
             return
         self.user_id = result
         print("Login successful")
+        self.recv_thread.start()
         self.location = "Main Menu"
 
     def _remote_login(self, username, password):
-        pass
+        req = Message(msg_type="response", username=username, password=password,
+                      action="login", shared_server_key=self.client_server_key).generate_msg()
+        self.socket.sendall(req)
+        resp = self.socket.recv(1024)
+        content = mh.get_message_contents(resp, server_key=self.client_server_key)
+        message_type = content["message_type"]
+        if message_type != "success":
+            print(f"Bad message type {message_type}")
+            return None
+        user_id = content["user_id"]
+        return user_id
 
     def sign_up(self, args):
         username = args[0]
         password = args[1]
-        response_message = "{username:" + username + ", password:" + password + "}"
-
-        # Encrypt response message
-        encrypted_response_message = basic_crypto.encrypt_message(response_message, self.client_server_key)
-        msg = b"{message_type:sign_up, nonce:" + encrypted_response_message[0] + b", tag:" + encrypted_response_message[
-            1] + b", user_id:" + encrypted_response_message[2] + b"}"
+        msg = Message(msg_type="response", username=username, password=password,
+                      shared_server_key=self.client_server_key, action='sign-up').generate_msg()
         self.socket.send(msg)
+        message = self.socket.recv(1024)
+        content = mh.get_message_contents(message, server_key=self.client_server_key)
+        message_type = content['message_type']
+        if message_type == "success":
+            self.handle_signup_response(content, password)
 
     def logout(self, args):
         self.location = "Home Page"
@@ -130,16 +144,25 @@ class Client:
 
     def handle_message(self, message):
         content = mh.get_message_contents(message, server_key=self.client_server_key)
-        message_type = message.get_message_type()
-        if message_type == "response":
-            self.handle_signup_response(message)
+        message_type = content["message_type"]
+        if message_type == "client_key_request":
+            self.handle_client_key_request(content)
 
-    def handle_signup_response(self, message):
-        self.user_id = message.get_user_id()
-        username = message.get_username()
-        password = message.get_password()
-        self.databaseHandler.sign_up(username, password, self.user_id)
-        self.location = "Main Menu"
+    def handle_signup_response(self, content, password):
+        user_id = content["user_id"]
+        username = content["username"]
+        self.databaseHandler.sign_up(username, password, user_id)
+        print("Sign-up successful")
+
+    def handle_client_key_request(self, content):
+        sender_id = content['id']
+        foreign_public_key = content['public_key']
+        my_public_key = self.key_generator.gen_public_key()
+        resp = Message(msg_type="client_key_request", recipient_id=sender_id,
+                       public_key=my_public_key).generate_msg()
+        self.socket.sendall(resp)
+        shared_key = key_gen.generate_shared_key(self.key_generator, foreign_public_key)
+        self.conversation_keys[sender_id] = shared_key
 
 
 def main():

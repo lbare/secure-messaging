@@ -16,7 +16,7 @@ def generate_shared_key(dh_object_1, other_public_key):
         dh_object_1: DiffieHellman - a DH object
         other_public_key: the other public key
     """
-    return dh_object_1.gen_shared_key(other_public_key)
+    return dh_object_1.gen_shared_key(other_public_key)[:32]
 
 if __name__ == "__main__":
     alice = generate_new_DH()

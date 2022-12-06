@@ -1,6 +1,6 @@
-import basic_crypto
+import src.lib.basic_crypto as basic_crypto
 from datetime import datetime
-from message_handler import MessageHandler
+from src.lib.message_handler import MessageHandler
 
 
 def generate_timestamp():
@@ -51,19 +51,18 @@ class Message:
 
         Returns: bytes
         """
-        match self.msg_type:
-            case "message_to_server":
-                return self.message_to_server()
-            case "message_from_server":
-                return self.message_from_server()
-            case "request":
-                return self.request_msg()
-            case "response":
-                return self.response_msg()
-            case "success":
-                return self.success_msg()
-            case "client_key_request":
-                return self.client_key_request()
+        if self.msg_type == "message_to_server":
+            return self.message_to_server()
+        elif self.msg_type == "message_from_server":
+            return self.message_from_server()
+        elif self.msg_type == "request":
+            return self.request_msg()
+        elif self.msg_type == "response":
+            return self.response_msg()
+        elif self.msg_type == "success":
+            return self.success_msg()
+        elif self.msg_type == "client_key_request":
+            return self.client_key_request()
 
     def client_key_request(self):
         """
@@ -73,7 +72,8 @@ class Message:
         """
         payload = f"id:{self.recipient_id}, public_key:{self.public_key}"
 
-        nonce, tag, encrypted_payload = basic_crypto.encrypt_message(str.encode(payload), str.encode(self.shared_server_key))
+        nonce, tag, encrypted_payload = basic_crypto.encrypt_message(str.encode(payload),
+                                                                     str.encode(self.shared_server_key))
 
         return b"{message_type:client_key_request, nonce:" + nonce + b", tag:" + tag + b", payload:" + encrypted_payload + b"}"
 
@@ -158,7 +158,7 @@ class Message:
 
         Returns: tuple in the form [cipher.nonce, tag, encrypted message]
         """
-        payload = f"user_id:{self.user_id}"
+        payload = f"user_id:{self.user_id}, username:{self.username}"
         nonce, tag, encrypted_payload = basic_crypto.encrypt_message(str.encode(payload),
                                                                      str.encode(self.shared_server_key))
 
@@ -275,7 +275,8 @@ def client_key_request_test():
     alice_server_shared_key = "hjklhjklhjklhjkl"
 
     # Client
-    payload = Message(msg_type="client_key_request", recipient_id=bob_id, public_key=alice_public_key ,shared_server_key=alice_server_shared_key).generate_msg()
+    payload = Message(msg_type="client_key_request", recipient_id=bob_id, public_key=alice_public_key,
+                      shared_server_key=alice_server_shared_key).generate_msg()
     # *sends payload*
 
     # Server *receives payload*
@@ -285,11 +286,10 @@ def client_key_request_test():
 
 
 if __name__ == "__main__":
-    #tests()
-    #request_message_test()
-    #print()
-    #response_message_test()
-    #client_message_test()
-    #success_message_test()
+    # tests()
+    # request_message_test()
+    # print()
+    # response_message_test()
+    # client_message_test()
+    # success_message_test()
     client_key_request_test()
-

@@ -1,12 +1,12 @@
-import basic_crypto
-import re
+import src.lib.basic_crypto as basic_crypto
 
-class MessageHandler():
+
+class MessageHandler:
 
     @classmethod
     def _get_message_contents_request(cls, message_bytes):
         parts = message_bytes.split(b',', 2)
-    
+
         contents = {
             'message_type': parts[0].split(b':')[1].decode(),
             'public_key': parts[1].split(b':')[1].decode()
@@ -18,7 +18,7 @@ class MessageHandler():
     def _get_message_contents_response(cls, message_bytes, key):
         _, nonce, tag, encrypted_payload = \
             [msg.split(b":", 1)[1] for msg in message_bytes.strip(b'{}').split(b', ', 4)]
- 
+
         decrypted_payload = basic_crypto.decrypt_message(nonce, tag, encrypted_payload, str.encode(key))
         inner_parts = decrypted_payload.split(b',', 3)
 
@@ -32,15 +32,15 @@ class MessageHandler():
     def _get_message_contents_success(cls, message_bytes, key):
         message_type, nonce, tag, encrypted_payload = \
             [msg.split(b":", 1)[1] for msg in message_bytes.strip(b'{}').split(b', ', 4)]
- 
+
         decrypted_payload = basic_crypto.decrypt_message(nonce, tag, encrypted_payload, str.encode(key))
         parts = decrypted_payload.split(b',', 1)
 
         contents = {'message_type': message_type.decode(),
-                    'user_id': parts[0].split(b':')[1].decode()
+                    'user_id': parts[0].split(b':')[1].decode(),
+                    'username': parts[1].split(b':')[1].decode()
                     }
         return contents
-
 
     @classmethod
     def _get_message_contents_to_server(cls, message_bytes, key):
@@ -89,7 +89,7 @@ class MessageHandler():
     def _get_message_contents_client_key_request(cls, message_bytes, key):
         message_type, nonce, tag, encrypted_payload = \
             [msg.split(b":", 1)[1] for msg in message_bytes.strip(b'{}').split(b', ', 4)]
- 
+
         decrypted_payload = basic_crypto.decrypt_message(nonce, tag, encrypted_payload, str.encode(key))
         parts = decrypted_payload.split(b',', 2)
 
@@ -100,23 +100,21 @@ class MessageHandler():
 
         return contents
 
-
     @classmethod
     def get_message_contents(cls, message_bytes, server_key=None, client_key_dict=None):
         message_type = message_bytes.split(b',', 1)[0].split(b':')[1]
-        #print(f"message type: {message_type.decode()}")
-        
-        match message_type:
-            case b"message_to_server":
-                return cls._get_message_contents_to_server(message_bytes, server_key)
-            case b"message_from_server":
-                return cls._get_message_contents_from_server(message_bytes, server_key=server_key, client_key=client_key_dict)
-            case b"request":
-                return cls._get_message_contents_request(message_bytes)
-            case b"response":
-                return cls._get_message_contents_response(message_bytes, server_key)
-            case b"success":
-                return cls._get_message_contents_success(message_bytes, server_key)
-            case b"client_key_request":
-                return cls._get_message_contents_client_key_request(message_bytes, server_key)
+        # print(f"message type: {message_type.decode()}")
 
+        if message_type == b"message_to_server":
+            return cls._get_message_contents_to_server(message_bytes, server_key)
+        elif message_type == b"message_from_server":
+            return cls._get_message_contents_from_server(message_bytes, server_key=server_key,
+                                                         client_key_dict=client_key_dict)
+        elif message_type == b"request":
+            return cls._get_message_contents_request(message_bytes)
+        elif message_type == b"response":
+            return cls._get_message_contents_response(message_bytes, server_key)
+        elif message_type == b"success":
+            return cls._get_message_contents_success(message_bytes, server_key)
+        elif message_type == b"client_key_request":
+            return cls._get_message_contents_client_key_request(message_bytes, server_key)

@@ -7,7 +7,7 @@ import lib.generate_keys as key_gen
 
 
 class Server:
-    address = (socket.gethostbyname(socket.gethostname()), 9999)
+    address = ("127.0.0.1", 9999)
     print(address)
 
     def __init__(self):
@@ -30,12 +30,16 @@ class Server:
         if content["message_type"] != "request":
             client.close()
             return
-        shared_key = key_gen.generate_shared_key(self.key_generator, content["public_key"])
-        resp_message = Message(msg_type="request", public_key=self.key_generator.get_public_key())
+        shared_key = key_gen.generate_shared_key(self.key_generator, int(content["public_key"]))
+        resp_message = Message(msg_type="request", public_key=self.key_generator.gen_public_key())
         payload = resp_message.generate_msg()
         client.sendall(payload)
-        self._wait_for_login(client, shared_key)
-        self.handle_client(client, shared_key)
+        try:
+            self._wait_for_login(client, shared_key)
+            self.handle_client(client, shared_key)
+        except ConnectionResetError:
+            print("Connection ended")
+            return
 
     def _wait_for_login(self, client: socket.socket, shared_key):
         data = client.recv(1024)
@@ -51,7 +55,8 @@ class Server:
                     self.active_users[user_id] = client
                     return
             else:
-                print(f"Invalid message type: {message_type}")
+                print(f"Invalid message type waiting for login: {message_type}")
+            data = client.recv(1024)
 
     def handle_client(self, client: socket.socket, shared_key):
         data = client.recv(1024)
@@ -67,12 +72,17 @@ class Server:
                 pass
             else:
                 print(f"Invalid message type: {message_type}")
+            data = client.recv(1024)
 
     def handle_signup_process(self, client, signup_message, client_server_key):
         username = signup_message["username"]
         password = signup_message["password"]
         user_id = self.database.insert_new_user(username, password)
-        msg = Message(msg_type="success", shared_server_key=client_server_key, user_id=user_id).generate_msg()
+        if not user_id:
+            print("Sign-up failed user already exists")
+            return
+        msg = Message(msg_type="success", shared_server_key=client_server_key,
+                      user_id=user_id, username=username).generate_msg()
         client.sendall(msg)
         return
 
@@ -84,7 +94,8 @@ class Server:
             user_id = "None"
         else:
             user_id = user["user_id"]
-        msg = Message(msg_type="success", shared_server_key=client_server_key, user_id=user_id).generate_msg()
+        msg = Message(msg_type="success", shared_server_key=client_server_key,
+                      user_id=user_id, username=username).generate_msg()
         client.sendall(msg)
         return user_id
 

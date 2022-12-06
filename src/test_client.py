@@ -73,7 +73,7 @@ class Client:
     def handle_command(self, command):
         if not command:
             return
-        command = command.split(1)
+        command = command.split(" ", 1)
         method = command[0].lower()
         if len(command) > 1:
             args = command[1:]
@@ -142,7 +142,7 @@ class Client:
         exit(0)
 
     def msg(self, args):
-        args = args.split(1)
+        args = args.split(" ", 1)
         recipient = args[0]
         content = args[1]
 

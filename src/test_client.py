@@ -73,7 +73,7 @@ class Client:
     def handle_command(self, command):
         if not command:
             return
-        command = command.split()
+        command = command.split(1)
         method = command[0].lower()
         if len(command) > 1:
             args = command[1:]
@@ -86,6 +86,7 @@ class Client:
         #     print(e)
 
     def login(self, args):
+        args = args.split()
         username = args[0]
         password = args[1]
         user_id = self._remote_login(username, password)
@@ -118,6 +119,7 @@ class Client:
         return user_id
 
     def sign_up(self, args):
+        args = args.split()
         username = args[0]
         password = args[1]
         msg = Message(msg_type="response", username=username, password=password,
@@ -140,6 +142,7 @@ class Client:
         exit(0)
 
     def msg(self, args):
+        args = args.split(1)
         recipient = args[0]
         content = args[1]
 

@@ -5,6 +5,12 @@ class MessageHandler:
 
     @classmethod
     def _get_message_contents_request(cls, message_bytes):
+        """
+        Unpacks the contents of a `request` message
+        Returns a dictionary with keys:
+            'message_type'
+            'public_key'
+        """
         parts = message_bytes.split(b',', 2)
 
         contents = {
@@ -16,6 +22,14 @@ class MessageHandler:
 
     @classmethod
     def _get_message_contents_response(cls, message_bytes, key):
+        """
+        Unpacks the contents of a `response` message
+        Returns a dictionary with keys:
+            'message_type'
+            'username'
+            'password'
+        Requires the client-server shared key
+        """
         _, nonce, tag, encrypted_payload = \
             [msg.split(b":", 1)[1] for msg in message_bytes.strip(b'{}').split(b', ', 4)]
 
@@ -30,6 +44,14 @@ class MessageHandler:
 
     @classmethod
     def _get_message_contents_success(cls, message_bytes, key):
+        """
+        Unpacks the contents of a `success` message
+        Returns a dictionary with keys:
+            'message_type'
+            'user_id'
+            'username'
+        Requires the client-server shared key
+        """
         message_type, nonce, tag, encrypted_payload = \
             [msg.split(b":", 1)[1] for msg in message_bytes.strip(b'{}').split(b', ', 4)]
 
@@ -44,6 +66,15 @@ class MessageHandler:
 
     @classmethod
     def _get_message_contents_to_server(cls, message_bytes, key):
+        """
+        Unpacks the contents of a `message_to_server` message
+        Returns a dictionary with keys:
+            'message_type'
+            'recipient_id'
+            'timestamp'
+            'payload'
+        Requires the sender-server shared key
+        """
         message_bytes_1, message_bytes_2 = message_bytes.split(b"$$$", 2)
 
         _, nonce, tag, encrypted_payload = \
@@ -62,6 +93,15 @@ class MessageHandler:
 
     @classmethod
     def _get_message_contents_from_server(cls, message_bytes, server_key, client_key_dict):
+        """
+        Unpacks the contents of a `message_from_server` message
+        Returns a dictionary with keys:
+            'message_type'
+            'sender_id'
+            'timestamp'
+            'payload'
+        Requires the recipient-server shared key, along with a dictionary of client-client keys.
+        """
         message_bytes_1, message_bytes_2 = message_bytes.split(b"$$$", 2)
 
         message_type, nonce_1, tag_1, encrypted_payload_1 = \
@@ -87,6 +127,14 @@ class MessageHandler:
 
     @classmethod
     def _get_message_contents_client_key_request(cls, message_bytes, key):
+        """
+        Unpacks the contents of a `client_key_request` message
+        Returns a dictionary with keys:
+            'message_type'
+            'id'
+            'public_key'
+        Requires the sender-server shared key.
+        """
         message_type, nonce, tag, encrypted_payload = \
             [msg.split(b":", 1)[1] for msg in message_bytes.strip(b'{}').split(b', ', 4)]
 
@@ -102,6 +150,10 @@ class MessageHandler:
 
     @classmethod
     def get_message_contents(cls, message_bytes, server_key=None, client_key_dict=None):
+        """
+        Unpacks the contents of a given message
+        Returns a dictionary of the message's contents
+        """
         message_type = message_bytes.split(b',', 1)[0].split(b':')[1]
         # print(f"message type: {message_type.decode()}")
 

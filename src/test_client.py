@@ -79,11 +79,11 @@ class Client:
             args = command[1:]
         else:
             args = []
-        try:
-            self.handlers[method](args)
-        except (KeyError, IndexError) as e:
-            print("Invalid command")
-            print(e)
+        #try:
+        self.handlers[method](args)
+        # except (KeyError, IndexError) as e:
+        #     print("Invalid command")
+        #     print(e)
 
     def login(self, args):
         username = args[0]
@@ -147,9 +147,9 @@ class Client:
 
         if recipient_id not in self.conversation_keys.keys():
             self._initiate_DH_exchange(recipient_id)
-
+        print(self.conversation_keys)
         message = Message(msg_type="message_to_server", recipient_id=recipient_id,
-                          msg_content=content, shared_client_key=self.conversation_keys[recipient_id],
+                          msg_content=content, shared_client_key=self.conversation_keys[str(recipient_id)],
                           shared_server_key=self.client_server_key).generate_msg()
 
         self.socket.sendall(message)

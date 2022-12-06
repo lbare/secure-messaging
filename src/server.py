@@ -51,8 +51,8 @@ class Server:
             elif message_type == "login":
                 user_id = self.handle_login_process(client, content, shared_key)
                 if user_id != "None":
-                    self.active_keys[user_id] = shared_key
-                    self.active_users[user_id] = client
+                    self.active_keys[str(user_id)] = shared_key
+                    self.active_users[str(user_id)] = client
                     return
             else:
                 print(f"Invalid message type waiting for login: {message_type}")
@@ -67,12 +67,40 @@ class Server:
             if message_type == "message_to_server":
                 timestamp = self.route_message(content, shared_key, timestamp)
             elif message_type == "delete":
-                pass
+                self.handle_delete(client, content)
+                return
             elif message_type == "logout":
-                pass
+                self.handle_logout(client, content)
+                return
+            elif message_type == "add-contact":
+                self.handle_add_contact(client, content, shared_key)
             else:
                 print(f"Invalid message type: {message_type}")
             data = client.recv(1024)
+
+    def handle_add_contact(self, client, content, shared_key):
+        username = content['username']
+        user_id = self.database.get_user_by_name(username)
+        message = Message(msg_type="response", action="add-contact", username=username, password=user_id,
+                          shared_server_key=shared_key).generate_msg()
+        client.sendall(message)
+
+    def handle_logout(self, client, content):
+        user_id = content['username']
+        del self.active_keys[user_id]
+        del self.active_users[user_id]
+        client.close()
+
+    def handle_delete(self, client, content):
+        user_id = content['username']
+        try:
+            del self.active_keys[user_id]
+            del self.active_users[user_id]
+        except KeyError:
+            print(self.active_keys)
+            print(self.active_users)
+        client.close()
+        self.database.delete_user(user_id)
 
     def handle_signup_process(self, client, signup_message, client_server_key):
         username = signup_message["username"]

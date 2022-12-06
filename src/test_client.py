@@ -4,6 +4,7 @@ import lib.basic_crypto as basic_crypto
 import lib.db_handler as db
 import lib.generate_keys as key_gen
 from lib.message import Message
+from lib.message import generate_timestamp
 from lib.message_handler import MessageHandler as mh
 
 config = {}
@@ -19,12 +20,13 @@ class Client:
     def __init__(self):
         self.databaseHandler = db.ClientDatabaseHandler()
 
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket = None
         self.recv_thread = threading.Thread(target=self.recv, daemon=True)
 
         self.key_generator = key_gen.generate_new_DH()
         self.client_server_key = None
         self.user_id = None
+        self.username = None
         self.conversation_keys = {}
 
         self.location = "Home Page"
@@ -35,15 +37,19 @@ class Client:
             "msg": self.msg,
             "view-conversation": self.view_conversation,
             "delete-conversation": self.delete_conversation,
-            "delete-account": self.delete_account
+            "delete-account": self.delete_account,
+            "add-contact": self.add_contact
         }
         self._initialize_server_connection()
         self.start()
         self.databaseHandler.logout()
 
     def recv(self):
-        while 1:
-            message = self.socket.recv(1024)
+        while True:
+            try:
+                message = self.socket.recv(1024)
+            except ConnectionAbortedError as e:
+                return
             if not message:
                 break
             self.handle_message(message)
@@ -55,6 +61,7 @@ class Client:
             command = input(f"{self.location} >> ")
 
     def _initialize_server_connection(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((config["ip"], int(config["port"])))
         req_message = Message(msg_type="request", public_key=self.key_generator.gen_public_key()).generate_msg()
         self.socket.sendall(req_message)
@@ -67,7 +74,10 @@ class Client:
             return
         command = command.split()
         method = command[0].lower()
-        args = command[1:]
+        if len(command) > 1:
+            args = command[1:]
+        else:
+            args = []
         try:
             self.handlers[method](args)
         except (KeyError, IndexError) as e:
@@ -88,6 +98,7 @@ class Client:
             print("Login failed locally")
             return
         self.user_id = result
+        self.username = username
         print("Login successful")
         self.recv_thread.start()
         self.location = "Main Menu"
@@ -118,10 +129,40 @@ class Client:
             self.handle_signup_response(content, password)
 
     def logout(self, args):
+        message = Message(msg_type="response", action="logout",
+                          username=self.user_id, shared_server_key=self.client_server_key).generate_msg()
+        self.socket.sendall(message)
+        self.databaseHandler.logout()
+        self.recv_thread.join(0)
+        self.socket.close()
         self.location = "Home Page"
+        exit(0)
 
     def msg(self, args):
+        recipient = args[0]
+        content = args[1]
+
+        recipient_id = self.databaseHandler.get_id(recipient)
+
+        if recipient_id not in self.conversation_keys.keys():
+            self._initiate_DH_exchange(recipient_id)
+
+        message = Message(msg_type="message_to_server", recipient_id=recipient_id,
+                          msg_content=content, shared_client_key=self.conversation_keys[recipient_id],
+                          shared_server_key=self.client_server_key).generate_msg()
+
+        self.socket.sendall(message)
+
+        self.databaseHandler.add_message(recipient_id, content, generate_timestamp(), self.username)
         self.location = f"Message {args[0]}"
+
+    def _initiate_DH_exchange(self, recipient_id):
+        my_public_key = self.key_generator.gen_public_key()
+        resp = Message(msg_type="client_key_request", recipient_id=recipient_id,
+                       public_key=my_public_key).generate_msg()
+        self.socket.sendall(resp)
+        while recipient_id not in self.conversation_keys.keys():
+            pass
 
     def view_conversation(self, args):
         contact_name = args[0]
@@ -140,13 +181,38 @@ class Client:
             print("Success")
 
     def delete_account(self, args):
+        message = Message(msg_type="response", action="delete",
+                          username=self.user_id, shared_server_key=self.client_server_key).generate_msg()
+        self.socket.sendall(message)
+        self.databaseHandler.delete_user(self.username)
+        self.recv_thread.join(0)
+        self.socket.close()
         self.location = "Home Page"
+        exit(0)
+
+    def add_contact(self, args):
+        username = args[0]
+        msg = Message(msg_type="response", action="add-contact",
+                      username=username, shared_server_key=self.client_server_key).generate_msg()
+        self.socket.sendall(msg)
 
     def handle_message(self, message):
-        content = mh.get_message_contents(message, server_key=self.client_server_key)
+        content = mh.get_message_contents(message, server_key=self.client_server_key,
+                                          client_key_dict=self.conversation_keys)
         message_type = content["message_type"]
         if message_type == "client_key_request":
             self.handle_client_key_request(content)
+        elif message_type == "message_from_server":
+            self.handle_incoming_message(content)
+        elif message_type == "add-contact":
+            self.handle_add_contact_response(content)
+
+    def handle_incoming_message(self, content):
+        sender_id = content["sender_id"]
+        timestamp = content["timestamp"]
+        payload = content["payload"]
+        sender_name = self.databaseHandler.get_username(sender_id)
+        self.databaseHandler.add_message(sender_id, payload, timestamp, sender_name)
 
     def handle_signup_response(self, content, password):
         user_id = content["user_id"]
@@ -163,6 +229,12 @@ class Client:
         self.socket.sendall(resp)
         shared_key = key_gen.generate_shared_key(self.key_generator, foreign_public_key)
         self.conversation_keys[sender_id] = shared_key
+
+    def handle_add_contact_response(self, content):
+        username = content['username']
+        user_id = content['password']
+        self.databaseHandler.add_contact(user_id, username)
+        print(f"Contact added {username}")
 
 
 def main():

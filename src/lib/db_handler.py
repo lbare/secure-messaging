@@ -2,6 +2,7 @@ import sqlite3
 import uuid
 import src.lib.basic_crypto as basic_crypto
 import time
+import os
 
 
 def sanitize(s_input: str):
@@ -42,7 +43,7 @@ class ClientDatabaseHandler:
         if self.database is not None:
             raise DatabaseError("Database connection already open, please log out before attempting to open another "
                                 "connection")
-        self.database = sqlite3.connect(f"{username}.db")
+        self.database = sqlite3.connect(f"{username}.db", check_same_thread=False)
         self.database.execute('''CREATE TABLE IF NOT EXISTS localUser(
             USERNAME TEXT PRIMARY KEY,
             PASSWORD_HASH BLOB,
@@ -111,6 +112,14 @@ class ClientDatabaseHandler:
 
         self.database.commit()
 
+    def get_id(self, contact_name):
+        user_id = None
+        for contact in self.database.execute('''SELECT ID FROM contact WHERE USERNAME = ?''', (contact_name,)):
+            user_id = contact[0]
+        if user_id is None:
+            return False
+        return user_id
+
     def get_messages(self, contact_name):
         user_id = None
         messages = []
@@ -143,6 +152,18 @@ class ClientDatabaseHandler:
         self.database.execute(f'''DROP TABLE IF EXISTS message{sanitize(str(user_id))}''')
         self.database.commit()
         return True
+
+    def get_username(self, user_id):
+        user_request = self.database.execute('''SELECT USERNAME FROM contact 
+            WHERE ID = ? ''', (user_id,))
+        username = None
+        for i in user_request:
+            username = i[0]
+        return username
+
+    def delete_user(self, username):
+        self._close_database()
+        os.remove(f"{username}.db")
 
 
 class ServerDatabaseHandler:
@@ -183,6 +204,18 @@ class ServerDatabaseHandler:
             user["username"] = i[1]
             user["password_hash"] = i[2]
         return user
+
+    def get_user_by_name(self, username):
+        user_request = self.database.execute('''SELECT ID FROM users 
+            WHERE USERNAME = ? ''', (username,))
+        user_id = None
+        for i in user_request:
+            user_id = i[0]
+        return user_id
+
+    def delete_user(self, user_id):
+        self.database.execute('''DELETE FROM users WHERE ID = ?''', (user_id,))
+        self.database.commit()
 
     def login(self, username, password):
         password_hash = basic_crypto.hash_password(password)

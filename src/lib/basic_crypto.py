@@ -32,8 +32,18 @@ def hash_password(password):
 
 
 def generate_key():
+    """
+    Generate an AES viable key used to encrypt/decrypt messages in the local database
+    :return: a 16 byte random key
+    """
     return secrets.token_bytes(16)
 
 
 def make_AES_key(password):
+    """
+    Given a password, convert it deterministically to another password used to encrypt the message decryption/encryption
+    key used by local database
+    :param password: the users password
+    :return: an AES compatible version of that password
+    """
     return PBKDF2(password, "").read(32)

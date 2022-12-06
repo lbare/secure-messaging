@@ -1,6 +1,6 @@
 # SENG-360-GROUP-1
 
-Secure Messaging Service
+A Secure Messaging Service. For information about the system, visit the [Wiki](https://gitlab.csc.uvic.ca/courses/2022091/SENG360_COSI/assignments/ebertc/seng-360-group-1/-/wikis/home)
 
 # Test Environment Setup
 

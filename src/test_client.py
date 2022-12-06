@@ -211,11 +211,13 @@ class Client:
             self.handle_add_contact_response(content)
 
     def handle_incoming_message(self, content):
+        print(content)
         sender_id = content["sender_id"]
         timestamp = content["timestamp"]
         payload = content["payload"]
+        message = payload.split(',', 1)[1].split(":", 1)[1]
         sender_name = self.databaseHandler.get_username(sender_id)
-        self.databaseHandler.add_message(sender_id, payload, timestamp, sender_name)
+        self.databaseHandler.add_message(sender_id, message, timestamp, sender_name)
         if self.location == f"Message {sender_name}":
             print(f"{timestamp} {sender_name}:{payload}")
 

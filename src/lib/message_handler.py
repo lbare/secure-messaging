@@ -70,7 +70,7 @@ class MessageHandler:
         decrypted_payload_1 = basic_crypto.decrypt_message(nonce_1, tag_1, encrypted_payload_1, str.encode(server_key))
         sender_id, timestamp = [msg.split(b':', 1)[1] for msg in decrypted_payload_1.split(b', ', 2)]
 
-        client_key = client_key_dict[sender_id]
+        client_key = client_key_dict[sender_id.decode()]
 
         _, nonce_2, tag_2, encrypted_payload_2 = \
             [msg.split(b":", 1)[1] for msg in message_bytes_2.strip(b'{}').split(b', ', 4)]
@@ -79,7 +79,7 @@ class MessageHandler:
 
         contents = {'message_type': message_type.decode(),
                     'sender_id': sender_id.decode(),
-                    'timestamp:': timestamp.decode(),
+                    'timestamp': timestamp.decode(),
                     'payload': decrypted_payload_2.decode()
                     }
 

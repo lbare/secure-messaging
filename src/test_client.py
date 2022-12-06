@@ -22,6 +22,7 @@ class Client:
 
         self.socket = None
         self.recv_thread = threading.Thread(target=self.recv, daemon=True)
+        self.in_dH = False
 
         self.key_generator = key_gen.generate_new_DH()
         self.client_server_key = None
@@ -157,11 +158,12 @@ class Client:
         self.location = f"Message {args[0]}"
 
     def _initiate_DH_exchange(self, recipient_id):
+        self.in_dH = True
         my_public_key = self.key_generator.gen_public_key()
         resp = Message(msg_type="client_key_request", recipient_id=recipient_id,
                        public_key=my_public_key, shared_server_key=self.client_server_key).generate_msg()
         self.socket.sendall(resp)
-        while recipient_id not in self.conversation_keys.keys():
+        while self.in_dH:
             pass
 
     def view_conversation(self, args):
@@ -197,6 +199,7 @@ class Client:
         self.socket.sendall(msg)
 
     def handle_message(self, message):
+        print(self.client_server_key)
         content = mh.get_message_contents(message, server_key=self.client_server_key,
                                           client_key_dict=self.conversation_keys)
         message_type = content["message_type"]
@@ -225,11 +228,17 @@ class Client:
     def handle_client_key_request(self, content):
         sender_id = content['id']
         foreign_public_key = content['public_key']
+        if self.in_dH:
+            shared_key = key_gen.generate_shared_key(self.key_generator, int(foreign_public_key))
+            self.conversation_keys[sender_id] = shared_key
+            self.in_dH = False
+            return
+
         my_public_key = self.key_generator.gen_public_key()
         resp = Message(msg_type="client_key_request", recipient_id=sender_id,
-                       public_key=my_public_key).generate_msg()
+                       public_key=my_public_key, shared_server_key=self.client_server_key).generate_msg()
         self.socket.sendall(resp)
-        shared_key = key_gen.generate_shared_key(self.key_generator, foreign_public_key)
+        shared_key = key_gen.generate_shared_key(self.key_generator, int(foreign_public_key))
         self.conversation_keys[sender_id] = shared_key
 
     def handle_add_contact_response(self, content):

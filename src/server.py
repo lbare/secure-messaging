@@ -7,7 +7,7 @@ import lib.generate_keys as key_gen
 
 
 class Server:
-    address = ("127.0.0.1", 9999)
+    address = (socket.gethostbyname(socket.gethostname()), 9999)
     print(address)
 
     def __init__(self):
@@ -75,7 +75,7 @@ class Server:
             elif message_type == "add-contact":
                 self.handle_add_contact(client, content, shared_key)
             elif message_type == "client_key_request":
-                self.handle_client_key_request()
+                self.handle_client_key_request(content, shared_key)
             else:
                 print(f"Invalid message type: {message_type}")
             data = client.recv(1024)
